@@ -8,10 +8,7 @@ from typing import List, Dict
 import numpy
 import os
 
-dir = 'scores'
-NAME = "name"
-
-pp = pprint.PrettyPrinter(indent=4)
+SCORES_DIR = 'scores'
 
 
 def handle_comp(file: str):
@@ -20,7 +17,7 @@ def handle_comp(file: str):
     :param file: CSV file with scores for the competition
     :return: raw and normalized score dictionary, mapping group to list of scores for this comp
     """
-    with open(os.path.join(dir, file), mode='r') as infile:
+    with open(os.path.join(SCORES_DIR, file), mode='r') as infile:
         # Trick to calculate the number of judges ahead of time
         col_reader, reader = itertools.tee(csv.reader(infile))
         num_judges: int = len(next(col_reader)) - 1
@@ -102,17 +99,17 @@ def select_groups(groups, amed_rank, amean_rank, rmed_rank, rmean_rank):
         print(selected_groups)
 
 
-def get_standings(groups: List[str], amed_rank, amean_rank, rmed_rank, rmean_rank):
+def get_standings(groups, amed_rank, amean_rank, rmed_rank, rmean_rank):
     buckets = {}
     print(f"{len(groups)} groups")
     for t in groups:
         bucket = max(amed_rank[t], amean_rank[t], rmed_rank[t], rmean_rank[t])
         buckets[bucket] = (buckets[bucket] if bucket in buckets else []) + [t]
-    buckets: collections.OrderedDict[int, List[str]] = collections.OrderedDict(sorted(buckets.items()))
+    buckets = collections.OrderedDict(sorted(buckets.items()))
 
     print(buckets)
     with open("output.csv", mode="w") as outfile:
-        outfile.write("threshold,groups\n")
+        outfile.write("Threshold,Groups\n")
         for bucket in buckets:
             outfile.write(f"{bucket},{buckets[bucket]}\n")
 
@@ -123,7 +120,7 @@ def get_group_stats(group: str, groups: List[str], amed_rank, amean_rank, rmed_r
 
 
 def main():
-    files: List[str] = os.listdir(dir)
+    files: List[str] = os.listdir(SCORES_DIR)
 
     # build normals
     raw, normal = build_totals(files)
@@ -140,8 +137,7 @@ def main():
     rmean_rank = get_ranks(rmean)
 
     # Work the passed-in threshold
-    process_fn = get_group_stats  # get_standings  # select_groups
-    process_fn = partial(process_fn, input("Enter group"))
+    process_fn = get_standings # partial(get_group_stats, input("Enter group")) # # select_groups
 
     process_fn(groups, amed_rank, amean_rank, rmed_rank, rmean_rank)
 
