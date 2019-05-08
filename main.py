@@ -1,8 +1,6 @@
 import collections
 import itertools
 import csv
-import pprint
-from functools import partial
 from typing import List, Dict
 
 import numpy
@@ -100,11 +98,12 @@ def select_groups(groups, amed_rank, amean_rank, rmed_rank, rmean_rank):
 
 
 def get_standings(groups, amed_rank, amean_rank, rmed_rank, rmean_rank):
-    buckets = {}
+    buckets: Dict[float, List[str]] = {}
     print(f"{len(groups)} groups")
     for t in groups:
-        bucket = max(amed_rank[t], amean_rank[t], rmed_rank[t], rmean_rank[t])
+        bucket: float = max(amed_rank[t], amean_rank[t], rmed_rank[t], rmean_rank[t])
         buckets[bucket] = (buckets[bucket] if bucket in buckets else []) + [t]
+    buckets = {key: sorted(value) for (key, value) in buckets.items()}
     buckets = collections.OrderedDict(sorted(buckets.items()))
 
     print(buckets)
@@ -137,7 +136,7 @@ def main():
     rmean_rank = get_ranks(rmean)
 
     # Work the passed-in threshold
-    process_fn = get_standings # partial(get_group_stats, input("Enter group")) # # select_groups
+    process_fn = get_standings  # partial(get_group_stats, input("Enter group")) # # select_groups
 
     process_fn(groups, amed_rank, amean_rank, rmed_rank, rmean_rank)
 
