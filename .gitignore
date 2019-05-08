@@ -67,3 +67,4 @@ fabric.properties
 
 # Custom
 *.csv
+.gitsecret/keys/random_seed
