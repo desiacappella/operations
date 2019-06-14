@@ -1,28 +1,37 @@
 import collections
-import itertools
 import csv
-from typing import List, Dict
+import itertools
+import os
+from typing import List, Dict, Type, Tuple
 
 import numpy
-import os
 
+# In order list of competitions
+COMPS = ['jeena', 'anahat', 'sangeet', 'mehfil', 'sahana', 'gathe', 'awaazein']
 SCORES_DIR = 'scores'
 
+Group: Type = str
+Score: Type = float
+Stat: Type = float
+Rank: Type = int
+ScoresDict: Type = Dict[Group, List[Score]]
 
-def handle_comp(file: str):
+
+def handle_comp(file: str) -> Tuple[ScoresDict, ScoresDict]:
     """
-    Handles a single competition. (`os.path.splitext(file)[0]`)
-    :param file: CSV file with scores for the competition
+    Handles a single competition.
+    :param file: CSV file with scores for the competition (relative path to script)
     :return: raw and normalized score dictionary, mapping group to list of scores for this comp
     """
-    with open(os.path.join(SCORES_DIR, file), mode='r') as infile:
+    with open(file, mode='r') as infile:
         # Trick to calculate the number of judges ahead of time
         col_reader, reader = itertools.tee(csv.reader(infile))
-        num_judges: int = len(next(col_reader)) - 1
+
+        num_judges = len(next(col_reader)) - 1
         del col_reader
 
         # raw judges' scores per group
-        raw: Dict[str, List[float]] = {}
+        raw: ScoresDict = {}
         for oScores in reader:
             raw[oScores[0]] = [float(x) for x in oScores[1:]]
 
@@ -31,7 +40,7 @@ def handle_comp(file: str):
         for i in range(num_judges):
             judge_avgs.append(numpy.mean([raw[group][i] for group in raw]))
 
-        normal: Dict[str, List[float]] = {}
+        normal: ScoresDict = {}
         for group in raw:
             scores = raw[group]
             normal[group] = [x * 100 / judge_avgs[i] for i, x in enumerate(scores)]
@@ -39,14 +48,14 @@ def handle_comp(file: str):
     return raw, normal
 
 
-def build_totals(files: List[str]):
+def build_totals(files: List[str]) -> Tuple[ScoresDict, ScoresDict]:
     """
     Builds up all of the raw and normalized scores across the given competitions for all groups.
     :param files: list of all competition score files
     :return:
     """
-    all_raw = {}
-    all_normal = {}
+    all_raw: ScoresDict = {}
+    all_normal: ScoresDict = {}
     for file in files:
         raw, normal = handle_comp(file)
         # TODO there's definitely a nice lib function to do this
@@ -65,80 +74,89 @@ def build_totals(files: List[str]):
     return all_raw, all_normal
 
 
-def get_stats(scores):
+def get_stats(scores: ScoresDict):
     """
     Converts dictionary of scores to dictionaries of median and mean values
     :param scores: dictionary of group to list of scores
     :return: median and mean dictionaries
     """
-    med = {}
-    mean = {}
+    med: Dict[Group, Stat] = {}
+    mean: Dict[Group, Stat] = {}
 
     for group in scores:
-        med[group] = numpy.median(scores[group])
-        mean[group] = numpy.mean(scores[group])
+        med[group] = Stat(numpy.median(scores[group]))
+        mean[group] = Stat(numpy.mean(scores[group]))
 
     return med, mean
 
 
-def get_ranks(stats_map):
+def get_ranks(stats_map: Dict[Group, Stat]) -> Dict[Group, Rank]:
     # TODO use pandas rank
     sorted_by_value = sorted(stats_map.items(), key=lambda kv: kv[1], reverse=True)
     # start with 1
     return {tup[0]: (i + 1) for i, tup in enumerate(sorted_by_value)}
 
 
-def select_groups(groups, amed_rank, amean_rank, rmed_rank, rmean_rank):
-    while True:
-        threshold = int(input("Enter threshold: "))
-        selected_groups = [t for t in groups if
-                           amed_rank[t] <= threshold and amean_rank[t] <= threshold and rmed_rank[t] <= threshold and
-                           rmean_rank[t] <= threshold]
-        print(selected_groups)
+class CircuitView:
+    """
+    Represents the state of the circuit
+    """
 
+    def __init__(self, files: List[str]):
+        self.files = files
 
-def get_standings(groups, amed_rank, amean_rank, rmed_rank, rmean_rank):
-    buckets: Dict[float, List[str]] = {}
-    print(f"{len(groups)} groups")
-    for t in groups:
-        bucket: float = max(amed_rank[t], amean_rank[t], rmed_rank[t], rmean_rank[t])
-        buckets[bucket] = (buckets[bucket] if bucket in buckets else []) + [t]
-    buckets = {key: sorted(value) for (key, value) in buckets.items()}
-    buckets = collections.OrderedDict(sorted(buckets.items()))
+        # build normals
+        raw, normal = build_totals(self.files)
+        self.groups = list(raw.keys())
 
-    print(buckets)
-    with open("output.csv", mode="w") as outfile:
-        outfile.write("Threshold,Groups\n")
-        for bucket in buckets:
-            outfile.write(f"{bucket},{buckets[bucket]}\n")
+        # evaluate numbers
+        self.amed, self.amean = get_stats(raw)
+        self.rmed, self.rmean = get_stats(normal)
 
+        # get ranks
+        self.amed_rank = get_ranks(self.amed)
+        self.amean_rank = get_ranks(self.amean)
+        self.rmed_rank = get_ranks(self.rmed)
+        self.rmean_rank = get_ranks(self.rmean)
 
-def get_group_stats(group: str, groups: List[str], amed_rank, amean_rank, rmed_rank, rmean_rank):
-    print(
-        f"{group}: Abs Median {amed_rank[group]}, Abs Mean {amean_rank[group]}, Rel Median {rmed_rank[group]}, Rel Mean {rmean_rank[group]}")
+    def select_groups(self):
+        while True:
+            threshold = int(input("Enter threshold: "))
+            selected_groups = [t for t in self.groups if
+                               self.amed_rank[t] <= threshold and self.amean_rank[t] <= threshold and self.rmed_rank[
+                                   t] <= threshold and
+                               self.rmean_rank[t] <= threshold]
+            print(selected_groups)
+
+    def get_standings(self):
+        buckets: Dict[float, List[str]] = {}
+        print(f"{len(self.groups)} groups")
+        for t in self.groups:
+            bucket: Rank = max(self.amed_rank[t], self.amean_rank[t], self.rmed_rank[t], self.rmean_rank[t])
+            buckets[bucket] = (buckets[bucket] if bucket in buckets else []) + [t]
+        buckets = {key: sorted(value) for (key, value) in buckets.items()}
+        ordered_buckets = collections.OrderedDict(sorted(iter(buckets.items())))
+
+        print(ordered_buckets)
+        with open("output.csv", mode="w") as outfile:
+            outfile.write("Threshold,Groups\n")
+            for bucket in ordered_buckets:
+                outfile.write(f"{bucket},{ordered_buckets[bucket]}\n")
+
+    def get_group_stats(self, group: str):
+        print(f"{group}: Abs Median {self.amed_rank[group]}, Abs Mean {self.amean_rank[group]}, "
+              f"Rel Median {self.rmed_rank[group]}, Rel Mean {self.rmean_rank[group]}")
+
+    def create_report(self, group: str):
+        pass
 
 
 def main():
-    files: List[str] = os.listdir(SCORES_DIR)
+    # Full circuit
+    files: List[str] = [f"{SCORES_DIR}{os.path.sep}{comp}.csv" for comp in COMPS]
+    full = CircuitView(files)
 
-    # build normals
-    raw, normal = build_totals(files)
-    groups = raw.keys()
-
-    # evaluate numbers
-    amed, amean = get_stats(raw)
-    rmed, rmean = get_stats(normal)
-
-    # get ranks
-    amed_rank = get_ranks(amed)
-    amean_rank = get_ranks(amean)
-    rmed_rank = get_ranks(rmed)
-    rmean_rank = get_ranks(rmean)
-
-    # Work the passed-in threshold
-    process_fn = get_standings  # partial(get_group_stats, input("Enter group")) # # select_groups
-
-    process_fn(groups, amed_rank, amean_rank, rmed_rank, rmean_rank)
+    full.get_group_stats(input("Enter group: "))
 
 
 if __name__ == '__main__':
