@@ -4,6 +4,7 @@ import itertools
 import json
 import os
 from typing import List, Dict, Type, Tuple, Any
+from tabulate import tabulate
 
 import numpy
 
@@ -106,7 +107,7 @@ class CircuitView:
         self.comps = comps
 
         if setup:
-            self.comp_details: Dict[str, Dict[str, ScoresDict]] = {
+            self.comp_details: Dict[str, Dict[str, Any]] = {
                 comp: handle_comp(comp) for comp in comps
             }
 
@@ -182,70 +183,115 @@ class CircuitView:
             for bucket in ordered_buckets:
                 outfile.write(f"{bucket},{ordered_buckets[bucket]}\n")
 
-    def print_group_ranks(self, group: Group):
-        print(f"Abs Median {self.amed_rank[group]}, Abs Mean {self.amean_rank[group]}, "
-              f"Rel Median {self.rmed_rank[group]}, Rel Mean {self.rmean_rank[group]}")
+    def get_group_stats(self, group: Group):
+        return {
+            "amed": self.amed[group] if group in self.amed else 0,
+            "amean": self.amean[group] if group in self.amean else 0,
+            "rmed": self.rmed[group] if group in self.rmed else 0,
+            "rmean": self.rmean[group] if group in self.rmean else 0,
+        }
 
-    def print_group_stats(self, group: Group):
-        print(f"Abs Median {self.amed[group]}, Abs Mean {self.amean[group]}, "
-              f"Rel Median {self.rmed[group]}, Rel Mean {self.rmean[group]}")
-
-
-FULL_JSON = 'full.json'
+    def get_group_ranks(self, group: Group):
+        return {
+            "amed": self.amed_rank[group] if group in self.amed_rank else len(self.groups),
+            "amean": self.amean_rank[group] if group in self.amean_rank else len(self.groups),
+            "rmed": self.rmed_rank[group] if group in self.rmed_rank else len(self.groups),
+            "rmean": self.rmean_rank[group] if group in self.rmean_rank else len(self.groups),
+        }
 
 
 def print_sep():
-    print("----------")
+    print()
+    print("-" * 100)
+    print()
+
+
+def get_circuit_view(n: int) -> CircuitView:
+    """
+    :param n: n is number of competitions to consider
+    :return:
+    """
+    if os.path.exists(f"{n}.json"):
+        view = CircuitView.load(f"{n}.json")
+    else:
+        view = CircuitView(comps_18_19[0:n])
+        view.dump(f"{n}.json")
+
+    return view
+
+
+comps_18_19 = ['jeena', 'anahat', 'sangeet', 'mehfil', 'sahana', 'gathe', 'awaazein']
+
+
+def r(n: float) -> str:
+    return str(round(n, 3))
 
 
 def main():
-    # In-order list of competitions
-    comps_18_19 = ['jeena', 'anahat', 'sangeet', 'mehfil', 'sahana', 'gathe', 'awaazein']
+    # Setup
+    circuit_views = [get_circuit_view(i) for i in range(1, len(comps_18_19) + 1)]
+    full = circuit_views[-1]
 
-    # Caching
-    if os.path.exists(FULL_JSON):
-        full = CircuitView.load(FULL_JSON)
-    else:
-        full = CircuitView(comps_18_19)
-        full.dump(FULL_JSON)
-
-    group = "Astha"  # input("Enter group: ")
+    group = "Tufaan"  # input("Enter group: ")
 
     print(f"ASA SCORE REPORT 2018-19 FOR {group.upper()}")
 
     print_sep()
 
     # SECTION 1: Final details
-    print("Your final ranks:")
-    full.print_group_ranks(group)
-    print("Your final statistics:")
-    full.print_group_stats(group)
+    print("Year-end scores")
+    ranks = full.get_group_ranks(group)
+    scores = full.get_group_stats(group)
+    print(tabulate([
+        ("Ranks",) + (*ranks.values(),),
+        ("Scores",) + tuple(r(score) for score in scores.values())
+    ], headers=["", "Abs Median", "Abs Mean", "Rel Median", "Rel Mean"]))
 
     print_sep()
 
     # SECTION 2: Per-comp details
     attended = [comp for comp in comps_18_19 if group in full.comp_details[comp][RAW]]
-    print("Attended competitions: ", attended)
+    print("Attended competitions: ", *attended)
     for comp in attended:
         details = full.comp_details[comp]
         print(f"{comp}:")
         tprint("Normalized stats:")
-        tprint("Average score:", details['avg'], n=2)
-        tprint("Max score:", details['max'], n=2)
-        tprint("Min score:", details['min'], n=2)
+        tprint("Average score:", r(details['avg']), n=2)
+        tprint("Max score:", r(details['max']), n=2)
+        tprint("Min score:", r(details['min']), n=2)
 
-        tprint("Judge averages:", details['judge_avgs'])
+        tprinttable(
+            tabulate([
+                ("Judge averages",) + tuple(r(avg) for avg in details['judge_avgs']),
+                ("Your raw",) + tuple(r(score) for score in details[RAW][group]),
+                ("Your normalized",) + tuple(r(score) for score in details[NORMAL][group]),
+            ])
+        )
 
-        tprint("Your scores:")
-        tprint("Raw:", details[RAW][group], n=2)
-        tprint("Normalized:", details[NORMAL][group], n=2)
+    print_sep()
 
     # SECTION 3: Progression through the year
-    # TODO
+    rank_progression = [circuit_views[i].get_group_ranks(group) for i in range(len(comps_18_19))]
+
+    print("Your rank progression through the season:")
+    print(tabulate([
+        ('Abs Median',) + tuple(stat['amed'] for stat in rank_progression),
+        ('Abs Mean',) + tuple(stat['amean'] for stat in rank_progression),
+        ('Rel Median',) + tuple(stat['rmed'] for stat in rank_progression),
+        ('Rel Mean',) + tuple(stat['rmean'] for stat in rank_progression),
+    ], headers=(["stat"] + comps_18_19)))
 
 
 def tprint(*values: Any, n=1):
     print("\t" * n, *values)
+
+
+def tprinttable(s: str, n=1):
+    """
+    Split by newline and add tabs
+    """
+    for line in s.split("\n"):
+        tprint(line, n=n)
 
 
 if __name__ == '__main__':
