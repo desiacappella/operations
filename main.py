@@ -193,10 +193,10 @@ class CircuitView:
 
     def get_group_ranks(self, group: Group):
         return {
-            "amed": self.amed_rank[group] if group in self.amed_rank else len(self.groups),
-            "amean": self.amean_rank[group] if group in self.amean_rank else len(self.groups),
-            "rmed": self.rmed_rank[group] if group in self.rmed_rank else len(self.groups),
-            "rmean": self.rmean_rank[group] if group in self.rmean_rank else len(self.groups),
+            "amed": self.amed_rank[group] if group in self.amed_rank else len(self.groups) + 1,
+            "amean": self.amean_rank[group] if group in self.amean_rank else len(self.groups) + 1,
+            "rmed": self.rmed_rank[group] if group in self.rmed_rank else len(self.groups) + 1,
+            "rmean": self.rmean_rank[group] if group in self.rmean_rank else len(self.groups) + 1,
         }
 
 
@@ -279,7 +279,7 @@ def main():
         ('Abs Mean',) + tuple(stat['amean'] for stat in rank_progression),
         ('Rel Median',) + tuple(stat['rmed'] for stat in rank_progression),
         ('Rel Mean',) + tuple(stat['rmean'] for stat in rank_progression),
-    ], headers=(["stat"] + comps_18_19)))
+    ], headers=(["stat"] + [comp + "*" if comp in attended else comp for comp in comps_18_19])))
 
 
 def tprint(*values: Any, n=1):
