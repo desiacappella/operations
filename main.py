@@ -22,7 +22,7 @@ def comp_to_file(comp: str) -> str:
     return f"{SCORES_DIR}{os.path.sep}{comp}.csv"
 
 
-def handle_comp(comp: str) -> Dict[str, ScoresDict]:
+def handle_comp(comp: str) -> Dict[str, Any]:
     """
     Handles a single competition.
     :param comp: name of comp
@@ -36,21 +36,22 @@ def handle_comp(comp: str) -> Dict[str, ScoresDict]:
         del col_reader
 
         # raw judges' scores per group
-        raw: ScoresDict = {}
-        for oScores in reader:
-            raw[oScores[0]] = [float(x) for x in oScores[1:]]
+        raw = {oScores[0]: [float(x) for x in oScores[1:]] for oScores in reader}
 
-        # normalize for each group for this comp
-        judge_avgs: List[numpy.ndarray] = []
-        for i in range(num_judges):
-            judge_avgs.append(numpy.mean([raw[group][i] for group in raw]))
+    # normalize for each group for this comp
+    judge_avgs = [numpy.mean([raw[group][i] for group in raw]) for i in range(num_judges)]
 
-        normal: ScoresDict = {}
-        for group in raw:
-            scores = raw[group]
-            normal[group] = [x * 100 / judge_avgs[i] for i, x in enumerate(scores)]
+    normal = {group: [x * 100 / judge_avgs[i] for i, x in enumerate(raw[group])] for group in raw}
 
-    return {"raw": raw, "normal": normal}
+    final_scores = {group: numpy.average(normal[group]) for group in normal}
+    final_scores_list = final_scores.values()
+    comp_max = max(final_scores_list)
+    comp_min = min(final_scores_list)
+    comp_avg = numpy.mean(list(final_scores_list))
+    # TODO judge names
+
+    return {RAW: raw, NORMAL: normal, 'final_scores': final_scores, 'max': comp_max, 'min': comp_min, 'avg': comp_avg,
+            'judge_avgs': judge_avgs}
 
 
 def build_totals(all_scores: Dict[str, Dict[str, ScoresDict]]) -> Tuple[ScoresDict, ScoresDict]:
@@ -105,12 +106,12 @@ class CircuitView:
         self.comps = comps
 
         if setup:
-            self.all_scores: Dict[str, Dict[str, ScoresDict]] = {
+            self.comp_details: Dict[str, Dict[str, ScoresDict]] = {
                 comp: handle_comp(comp) for comp in comps
             }
 
             # build normals
-            raw, normal = build_totals(self.all_scores)
+            raw, normal = build_totals(self.comp_details)
             self.groups = list(raw.keys())
 
             # evaluate numbers
@@ -123,13 +124,14 @@ class CircuitView:
             self.rmed_rank = get_ranks(self.rmed)
             self.rmean_rank = get_ranks(self.rmean)
 
+    # TODO look up a better way to persist python classes
     @staticmethod
     def load(filename: str):
         with open(filename, 'r') as f:
             d = json.load(f)
 
         cv = CircuitView(d['comps'], False)
-        cv.all_scores = d['all_scores']
+        cv.comp_details = d['comp_details']
         cv.groups = d['groups']
         cv.amed = d['amed']
         cv.amean = d['amean']
@@ -213,6 +215,7 @@ def main():
 
     print_sep()
 
+    # SECTION 1: Final details
     print("Your final ranks:")
     full.print_group_ranks(group)
     print("Your final statistics:")
@@ -220,14 +223,25 @@ def main():
 
     print_sep()
 
-    attended = [comp for comp in comps_18_19 if group in full.all_scores[comp][RAW]]
+    # SECTION 2: Per-comp details
+    attended = [comp for comp in comps_18_19 if group in full.comp_details[comp][RAW]]
     print("Attended competitions: ", attended)
     for comp in attended:
+        details = full.comp_details[comp]
         print(f"{comp}:")
+        tprint("Normalized stats:")
+        tprint("Average score:", details['avg'], n=2)
+        tprint("Max score:", details['max'], n=2)
+        tprint("Min score:", details['min'], n=2)
+
+        tprint("Judge averages:", details['judge_avgs'])
+
         tprint("Your scores:")
-        tprint("Raw:", full.all_scores[comp][RAW][group], n=2)
-        tprint("Normalized:", full.all_scores[comp][NORMAL][group], n=2)
-        tprint("Average score: ", 0)
+        tprint("Raw:", details[RAW][group], n=2)
+        tprint("Normalized:", details[NORMAL][group], n=2)
+
+    # SECTION 3: Progression through the year
+    # TODO
 
 
 def tprint(*values: Any, n=1):
