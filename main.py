@@ -3,7 +3,7 @@ import csv
 import itertools
 import json
 import os
-from typing import List, Dict, Type, Tuple, Any
+from typing import List, Dict, Type, Tuple, Any, Union
 from tabulate import tabulate
 
 import numpy
@@ -125,7 +125,22 @@ class CircuitView:
             self.rmed_rank = get_ranks(self.rmed)
             self.rmean_rank = get_ranks(self.rmean)
 
-    # TODO look up a better way to persist python classes
+            # compute misc. stats
+            self.attended: Dict[Group, List[str]] = {
+                group: [comp for comp in self.comps if group in self.comp_details[comp][RAW]]
+                for group in self.groups
+            }
+            self.avg_groups_per_comp = numpy.mean([len(self.comp_details[comp][RAW]) for comp in self.comp_details])
+            self.avg_judges_per_comp = numpy.mean(
+                [len(self.comp_details[comp]["judge_avgs"]) for comp in self.comp_details])
+            self.avg_comps_per_group = numpy.mean([len(self.attended[group]) for group in self.groups])
+            self.best_score = {
+                "group": "Lel",
+                "comp": "Lol",
+                "score": 420.69
+            }
+
+    # TODO look up a better way to persist python classes to files
     @staticmethod
     def load(filename: str):
         with open(filename, 'r') as f:
@@ -142,6 +157,11 @@ class CircuitView:
         cv.amean_rank = d['amean_rank']
         cv.rmed_rank = d['rmed_rank']
         cv.rmean_rank = d['rmean_rank']
+        cv.attended = d['attended']
+        cv.avg_groups_per_comp = d['avg_groups_per_comp']
+        cv.avg_judges_per_comp = d['avg_judges_per_comp']
+        cv.avg_comps_per_group = d['avg_comps_per_group']
+        cv.best_score = d['best_score']
 
         return cv
 
@@ -200,86 +220,14 @@ class CircuitView:
         }
 
 
+# UTILITY
+
 def print_sep():
-    print()
-    print("-" * 100)
-    print()
+    print("-" * 150)
 
 
-def get_circuit_view(n: int) -> CircuitView:
-    """
-    :param n: n is number of competitions to consider
-    :return:
-    """
-    if os.path.exists(f"{n}.json"):
-        view = CircuitView.load(f"{n}.json")
-    else:
-        view = CircuitView(comps_18_19[0:n])
-        view.dump(f"{n}.json")
-
-    return view
-
-
-comps_18_19 = ['jeena', 'anahat', 'sangeet', 'mehfil', 'sahana', 'gathe', 'awaazein']
-
-
-def r(n: float) -> str:
+def r(n: Union[float, numpy.ndarray]) -> str:
     return str(round(n, 3))
-
-
-def main():
-    # Setup
-    circuit_views = [get_circuit_view(i) for i in range(1, len(comps_18_19) + 1)]
-    full = circuit_views[-1]
-
-    group = "Tufaan"  # input("Enter group: ")
-
-    print(f"ASA SCORE REPORT 2018-19 FOR {group.upper()}")
-
-    print_sep()
-
-    # SECTION 1: Final details
-    print("Year-end scores")
-    ranks = full.get_group_ranks(group)
-    scores = full.get_group_stats(group)
-    print(tabulate([
-        ("Ranks",) + (*ranks.values(),),
-        ("Scores",) + tuple(r(score) for score in scores.values())
-    ], headers=["", "Abs Median", "Abs Mean", "Rel Median", "Rel Mean"]))
-
-    print_sep()
-
-    # SECTION 2: Per-comp details
-    attended = [comp for comp in comps_18_19 if group in full.comp_details[comp][RAW]]
-    print("Attended competitions: ", *attended)
-    for comp in attended:
-        details = full.comp_details[comp]
-        print(f"{comp}:")
-        tprint("Normalized stats:")
-        tprint("Average score:", r(details['avg']), n=2)
-        tprint("Max score:", r(details['max']), n=2)
-        tprint("Min score:", r(details['min']), n=2)
-
-        tprinttable(
-            tabulate([
-                ("Judge averages",) + tuple(r(avg) for avg in details['judge_avgs']),
-                ("Your raw",) + tuple(r(score) for score in details[RAW][group]),
-                ("Your normalized",) + tuple(r(score) for score in details[NORMAL][group]),
-            ])
-        )
-
-    print_sep()
-
-    # SECTION 3: Progression through the year
-    rank_progression = [circuit_views[i].get_group_ranks(group) for i in range(len(comps_18_19))]
-
-    print("Your rank progression through the season:")
-    print(tabulate([
-        ('Abs Median',) + tuple(stat['amed'] for stat in rank_progression),
-        ('Abs Mean',) + tuple(stat['amean'] for stat in rank_progression),
-        ('Rel Median',) + tuple(stat['rmed'] for stat in rank_progression),
-        ('Rel Mean',) + tuple(stat['rmean'] for stat in rank_progression),
-    ], headers=(["stat"] + [comp + "*" if comp in attended else comp for comp in comps_18_19])))
 
 
 def tprint(*values: Any, n=1):
@@ -294,5 +242,117 @@ def tprinttable(s: str, n=1):
         tprint(line, n=n)
 
 
+class Runner:
+    def __init__(self):
+        # Competitions for 2018-19
+        self.comps_18_19: List[str] = ['jeena', 'anahat', 'sangeet', 'mehfil', 'sahana', 'gathe', 'awaazein']
+        self.comp_names_18_19 = {
+            comp: comp.capitalize() for comp in self.comps_18_19
+        }
+        self.comp_names_18_19['sangeet'] = 'Sangeet Saagar'
+        self.comp_names_18_19['gathe'] = 'Gathe Raho'
+
+    def get_circuit_view(self, n: int) -> CircuitView:
+        """
+        :param n: n is number of competitions to consider
+        :return:
+        """
+        if os.path.exists(f"{n}.json"):
+            view = CircuitView.load(f"{n}.json")
+        else:
+            view = CircuitView(self.comps_18_19[0:n])
+            view.dump(f"{n}.json")
+
+        return view
+
+    def print_text_report(self, circuit_views: List[CircuitView], group: str):
+        full = circuit_views[-1]
+
+        print_sep()
+        print(f"ASA SCORE REPORT 2018-19 FOR {group.upper()}")
+        print_sep()
+        print()
+
+        # SECTION 1: Final details
+        print("1. Year-End Scores:\n")
+        ranks = full.get_group_ranks(group)
+        scores = full.get_group_stats(group)
+        print(tabulate([
+            ("Rank",) + (*ranks.values(),),
+            ("Score",) + tuple(r(score) for score in scores.values())
+        ], headers=["", "Abs Median", "Abs Mean", "Rel Median", "Rel Mean"]))
+
+        print()
+        print_sep()
+        print()
+
+        # SECTION 2: Per-comp details
+        attended = full.attended[group]
+        print(f"2. Attended Competitions: [{', '.join(self.comp_names_18_19[c] for c in attended)}]")
+        for comp in attended:
+            print()
+            details = full.comp_details[comp]
+            tprint(f"{self.comp_names_18_19[comp]}:")
+            tprint("Normalized stats:", n=2)
+            tprint("Average score:", r(details['avg']), n=3)
+            tprint("Max score:", r(details['max']), n=3)
+            tprint("Min score:", r(details['min']), n=3)
+
+            tprinttable(
+                tabulate([
+                    ("Judge averages (raw)",) + tuple(r(avg) for avg in details['judge_avgs']),
+                    ("Your raw",) + tuple(r(score) for score in details[RAW][group]),
+                    ("Your normalized",) + tuple(r(score) for score in details[NORMAL][group]),
+                ], headers=([
+                    f"Judge {n + 1}" for n in range(len(details['judge_avgs']))
+                ])), n=2
+            )
+
+        print()
+        print_sep()
+        print()
+
+        # SECTION 3: Progression through the year
+        print("3. Rank Progression:\n")
+        rank_progression = [circuit_views[i].get_group_ranks(group) for i in range(len(self.comps_18_19))]
+        print(tabulate([
+            ('Abs Median', *(stat['amed'] for stat in rank_progression)),
+            ('Abs Mean', *(stat['amean'] for stat in rank_progression)),
+            ('Rel Median', *(stat['rmed'] for stat in rank_progression)),
+            ('Rel Mean', *(stat['rmean'] for stat in rank_progression)),
+        ], headers=(["Rank after:"] + [(self.comp_names_18_19[comp] + ("*" if comp in attended else "")) for comp in
+                                       self.comps_18_19])))
+
+        print()
+        print_sep()
+        print()
+
+        print("4. General 2018-19 Circuit Stats:\n")
+        print("Total groups:", len(full.groups))
+        print("Average groups per competition:", r(full.avg_groups_per_comp))
+        print("Average judges per competition:", r(full.avg_judges_per_comp))
+        print("Average competitions per group:", r(full.avg_comps_per_group))
+        print(f"Best single-judge raw score: ", end="")
+        print(f"{full.best_score['score']},", full.best_score['group'], "at", full.best_score['comp'])
+
+        print()
+        print_sep()
+
+    def run(self):
+        # Setup
+        circuit_views = [self.get_circuit_view(i) for i in range(1, len(self.comps_18_19) + 1)]
+        full = circuit_views[-1]
+
+        print("Groups: ", ", ".join(full.groups))
+        while True:
+            group = input("Enter group: ")
+            if group in full.groups:
+                break
+            print("Invalid group")
+
+        self.print_text_report(circuit_views, group)
+
+
 if __name__ == '__main__':
-    main()
+    runner = Runner()
+    runner.run()
