@@ -22,14 +22,14 @@
           <th>Rel. Mean</th>
         </tr>
         <tr>
-          <td>Rank</td>
+          <th>Rank</th>
         </tr>
         <tr>
-          <td>Score</td>
+          <th>Score</th>
         </tr>
       </table>
     </div>
-    <h2><i>Competitions</i></h2>
+    <h2>Competitions</h2>
     <div class="card">
       <h3>{{ compName }}</h3>
       <h4>{{ compDate }}</h4>
@@ -57,28 +57,98 @@
           </tr>
           <tr>
             <th>Judge averages (raw)</th>
-            <th>70.484</th>
-            <th>55.957</th>
-            <th>77.759</th>
+            <td>70.484</td>
+            <td>55.957</td>
+            <td>77.759</td>
           </tr>
           <tr>
             <th>Your raw</th>
-            <th>85.728</th>
-            <th>60.1</th>
-            <th>91.256</th>
+            <td>85.728</td>
+            <td>60.1</td>
+            <td>91.256</td>
           </tr>
           <tr>
             <th>Your normalized</th>
-            <th>121.627</th>
-            <th>107.403</th>
-            <th>117.357</th>
+            <td>121.627</td>
+            <td>107.403</td>
+            <td>117.357</td>
           </tr>
         </table>
       </div>
     </div>
-    <div class="card">
-      <h3>{{ compName }}</h3>
-      <h4>{{ compDate }}</h4>
+    <h2>Rank Progression</h2>
+    <div class="flex">
+      <table>
+        <tr>
+          <th>Rank after:</th>
+          <th class="attended">Jeena*</th>
+          <th>Anahat</th>
+          <th>Sangeet Saagar</th>
+          <th>Mehfil</th>
+          <th>Sahana</th>
+          <th>Gathe Raho</th>
+          <th class="attended">Awaazein*</th>
+        </tr>
+        <tr>
+          <th>Abs Median</th>
+          <td>1</td>
+          <td>2</td>
+          <td>2</td>
+          <td>2</td>
+          <td>2</td>
+          <td>4</td>
+          <td>34</td>
+        </tr>
+        <tr>
+          <th>Abs Mean</th>
+          <td>1</td>
+          <td>5</td>
+          <td>6</td>
+          <td>7</td>
+          <td>9</td>
+          <td>11</td>
+          <td>25</td>
+        </tr>
+        <tr>
+          <th>Rel Median</th>
+          <td>1</td>
+          <td>3</td>
+          <td>4</td>
+          <td>4</td>
+          <td>4</td>
+          <td>4</td>
+          <td>25</td>
+        </tr>
+        <tr>
+          <th>Rel Mean</th>
+          <td>1</td>
+          <td>2</td>
+          <td>3</td>
+          <td>4</td>
+          <td>3</td>
+          <td>3</td>
+          <td>21</td>
+        </tr>
+      </table>
+    </div>
+    <h2>General Circuit Stats</h2>
+    <div class="flex center">
+      <div class="margin">
+        <div class="text-center">Total Groups</div>
+        <div class="text-center">{{ totalGroups }}</div>
+      </div>
+      <div class="margin">
+        <div class="text-center">Avg. Groups/Competition</div>
+        <div class="text-center">{{ avgGroupsPerComp }}</div>
+      </div>
+      <div class="margin">
+        <div class="text-center">Avg. Judges/Competition</div>
+        <div class="text-center">{{ avgJudgesPerComp }}</div>
+      </div>
+      <div class="margin">
+        <div class="text-center">Avg. Competitions/Group</div>
+        <div class="text-center">{{ avgCompsPerGroup }}</div>
+      </div>
     </div>
   </body>
 </html>

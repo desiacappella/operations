@@ -35,5 +35,9 @@ h4 {
 }
 
 .margin {
-    margin: 8px;
+    margin: 4px;
+}
+
+th.attended {
+    background-color: orange;
 }
