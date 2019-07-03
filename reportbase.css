@@ -1,0 +1,39 @@
+body {
+    font-family: 'DM Sans', sans-serif;
+}
+
+h1, h2, h3 {
+    font-family: 'DM Serif Text', serif;
+    text-align: center;
+}
+
+h4 {
+    text-align: center;
+}
+
+.flex {
+    display: flex;
+}
+
+.flex > table {
+    margin: auto;
+}
+
+.card {
+    border: 1px solid blue;
+    border-radius: 3px;
+    width: 50%;
+    margin: 8px;
+}
+
+.center {
+    justify-content: center;
+}
+
+.text-center {
+    text-align: center;
+}
+
+.margin {
+    margin: 8px;
+}
