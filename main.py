@@ -3,12 +3,12 @@ import csv
 import itertools
 import json
 import os
+import pathlib
 from typing import List, Dict, Type, Tuple, Any, Union
 
 import numpy
 from jinja2 import Template
 from tabulate import tabulate
-from weasyprint import HTML, CSS
 
 JUDGES_PER_ROW = 4
 
@@ -234,17 +234,19 @@ def r(n: Union[float, numpy.ndarray]) -> str:
     return str(round(n, 2))
 
 
-def tprint(*values: Any, n=1):
+def t_print(*values: Any, n=1):
     print("\t" * n, *values)
 
 
-def tprinttable(s: str, n=1):
+def t_print_table(s: str, n=1):
     """
     Split by newline and add tabs
     """
     for line in s.split("\n"):
-        tprint(line, n=n)
+        t_print(line, n=n)
 
+
+# RUNNER
 
 class Runner:
     def __init__(self):
@@ -261,11 +263,12 @@ class Runner:
         :param n: n is number of competitions to consider
         :return:
         """
-        if os.path.exists(f"{n}.json"):
-            view = CircuitView.load(f"{n}.json")
+        if os.path.exists(f"cache/{n}.json"):
+            view = CircuitView.load(f"cache/{n}.json")
         else:
             view = CircuitView(self.comps_18_19[0:n])
-            view.dump(f"{n}.json")
+            pathlib.Path("cache/").mkdir(parents=True, exist_ok=True)
+            view.dump(f"cache/{n}.json")
 
         return view
 
@@ -296,12 +299,12 @@ class Runner:
         for comp in attended:
             print()
             details = full.comp_details[comp]
-            tprint(f"{self.comp_names_18_19[comp]}:")
-            tprint("Normalized stats:", n=2)
-            tprint("Max score:", r(details['max']), n=3)
-            tprint("Min score:", r(details['min']), n=3)
+            t_print(f"{self.comp_names_18_19[comp]}:")
+            t_print("Normalized stats:", n=2)
+            t_print("Max score:", r(details['max']), n=3)
+            t_print("Min score:", r(details['min']), n=3)
 
-            tprinttable(
+            t_print_table(
                 tabulate([
                     ("Judge averages (raw)",) + tuple(r(avg) for avg in details['judge_avgs']),
                     ("Your raw",) + tuple(r(score) for score in details[RAW][group]),
@@ -375,19 +378,10 @@ class Runner:
 
             comp_details[comp] = comp_details_processed
 
-        rank_progression = [circuit_views[i].get_group_ranks(group) for i in range(len(self.comps_18_19))]
-        rank_table = [
-            [stat['amed'] for stat in rank_progression],
-            [stat['amean'] for stat in rank_progression],
-            [stat['rmed'] for stat in rank_progression],
-            [stat['rmean'] for stat in rank_progression],
-            [stat['total'] for stat in rank_progression],
-        ]
-
-        with open("templates/reportbase.html") as f:
+        with open("html/reportbase.html") as f:
             t = Template(f.read())
 
-        with open("output/report.html", 'w') as f:
+        with open("html/report.html", 'w') as f:
             f.write(
                 t.render(
                     group=group,
@@ -396,15 +390,12 @@ class Runner:
                     comp_details=comp_details,
                     all_comps=self.comps_18_19,
                     comp_names=self.comp_names_18_19,
-                    rank_table=rank_table,
                     total_groups=len(full.groups),
                     avg_groups_per_comp=r(full.avg_groups_per_comp),
                     avg_judges_per_comp=r(full.avg_judges_per_comp),
                     avg_comps_per_group=r(full.avg_comps_per_group),
                 )
             )
-
-        HTML("output/report.html").write_pdf("output/report.pdf", stylesheets=[CSS("output/reportbase.css")])
 
     def run(self):
         # Setup
@@ -413,12 +404,12 @@ class Runner:
 
         print("Groups: ", ", ".join(full.groups))
         while True:
-            group = input("Enter group: ")
+            group = "Saans"  # input("Enter group: ")
             if group in full.groups:
                 break
             print("Invalid group")
 
-        # self.print_text_report(circuit_views, group)
+            # self.print_text_report(circuit_views, group)
         self.render_html(circuit_views, group)
 
     def helper(self):

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>ASA Score Report 2018-19 for {{ group }}</title>
+    <link
+      href="https://fonts.googleapis.com/css?family=DM+Sans|DM+Serif+Text&display=swap"
+      rel="stylesheet"
+    />
+    <link href="reportbase.css" type="text/css" rel="stylesheet" />
+  </head>
+  <body>
+    <img src="./logo.png" height="50" class="header-image"/>
+    <h1>ASA Score Report 2018-19</h1>
+    <h2>{{ group }}</h2>
+    <div class="flex">
+      <table>
+        <tr>
+          <th></th>
+          <th>Abs. Median</th>
+          <th>Abs. Mean</th>
+          <th>Rel. Median</th>
+          <th>Rel. Mean</th>
+        </tr>
+        <tr>
+          <th>Rank</th>
+          {% for rank in group_ranks %}
+          <td>{{ rank }}</td>
+          {% endfor %}
+        </tr>
+        <tr>
+          <th>Score</th>
+          {% for score in group_scores[0:4] %}
+          <td>{{ score }}</td>
+          {% endfor %}
+        </tr>
+      </table>
+    </div>
+    <h2>Competitions</h2>
+    <div class="flex flex-vertical">
+      {% for comp in comp_details %}
+      <div class="card">
+        <h3>{{ comp_details[comp]["name"] }}</h3>
+        <div class="flex center">
+          <div class="margin">Normalized Scores:</div>
+          <div class="margin">
+            <div class="text-center">Max</div>
+            <div class="text-center">{{ comp_details[comp]["max"] }}</div>
+          </div>
+          <div class="margin">
+            <div class="text-center">Min</div>
+            <div class="text-center">{{ comp_details[comp]["min"] }}</div>
+          </div>
+        </div>
+        <div class="border">
+        </div>
+        <div class="flex flex-vertical">
+          {% for row in comp_details[comp]["rows"] %}
+          <table>
+            <tr>
+              <th></th>
+              {% for n in row["judges"] %}
+              <th>{{ n }}</th>
+              {% endfor %}
+            </tr>
+            <tr>
+              <th>Judge raw avg</th>
+              {% for avg in row["judge_avgs"] %}
+              <td>{{ avg }}</td>
+              {% endfor %}
+            </tr>
+            <tr>
+              <th>Your raw</th>
+              {% for raw in row["raw"] %}
+              <td>{{ raw }}</td>
+              {% endfor %}
+            </tr>
+            <tr>
+              <th>Your normalized</th>
+              {% for normal in row["normal"] %}
+              <td>{{ normal }}</td>
+              {% endfor %}
+            </tr>
+          </table>
+
+          {% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    <h2>General Circuit Stats</h2>
+    <div class="flex center">
+      <div class="margin">
+        <div class="text-center">Total Groups</div>
+        <div class="text-center">{{ total_groups }}</div>
+      </div>
+      <div class="margin">
+        <div class="text-center">Avg. Groups/Competition</div>
+        <div class="text-center">{{ avg_groups_per_comp }}</div>
+      </div>
+      <div class="margin">
+        <div class="text-center">Avg. Judges/Competition</div>
+        <div class="text-center">{{ avg_judges_per_comp }}</div>
+      </div>
+      <div class="margin">
+        <div class="text-center">Avg. Competitions/Group</div>
+        <div class="text-center">{{ avg_comps_per_group }}</div>
+      </div>
+    </div>
+  </body>
+</html>
