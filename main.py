@@ -4,9 +4,13 @@ import itertools
 import json
 import os
 from typing import List, Dict, Type, Tuple, Any, Union
-from tabulate import tabulate
 
 import numpy
+from jinja2 import Template
+from tabulate import tabulate
+from weasyprint import HTML, CSS
+
+JUDGES_PER_ROW = 4
 
 SCORES_DIR = 'scores'
 RAW = "raw"
@@ -48,10 +52,9 @@ def handle_comp(comp: str) -> Dict[str, Any]:
     final_scores_list = final_scores.values()
     comp_max = max(final_scores_list)
     comp_min = min(final_scores_list)
-    comp_avg = numpy.mean(list(final_scores_list))
     # TODO judge names
 
-    return {RAW: raw, NORMAL: normal, 'final_scores': final_scores, 'max': comp_max, 'min': comp_min, 'avg': comp_avg,
+    return {RAW: raw, NORMAL: normal, 'final_scores': final_scores, 'max': comp_max, 'min': comp_min,
             'judge_avgs': judge_avgs}
 
 
@@ -217,6 +220,7 @@ class CircuitView:
             "amean": self.amean_rank[group] if group in self.amean_rank else len(self.groups) + 1,
             "rmed": self.rmed_rank[group] if group in self.rmed_rank else len(self.groups) + 1,
             "rmean": self.rmean_rank[group] if group in self.rmean_rank else len(self.groups) + 1,
+            "total": len(self.groups),
         }
 
 
@@ -227,7 +231,7 @@ def print_sep():
 
 
 def r(n: Union[float, numpy.ndarray]) -> str:
-    return str(round(n, 3))
+    return str(round(n, 2))
 
 
 def tprint(*values: Any, n=1):
@@ -294,7 +298,6 @@ class Runner:
             details = full.comp_details[comp]
             tprint(f"{self.comp_names_18_19[comp]}:")
             tprint("Normalized stats:", n=2)
-            tprint("Average score:", r(details['avg']), n=3)
             tprint("Max score:", r(details['max']), n=3)
             tprint("Min score:", r(details['min']), n=3)
 
@@ -320,6 +323,7 @@ class Runner:
             ('Abs Mean', *(stat['amean'] for stat in rank_progression)),
             ('Rel Median', *(stat['rmed'] for stat in rank_progression)),
             ('Rel Mean', *(stat['rmean'] for stat in rank_progression)),
+            ('Total', *(stat['total'] for stat in rank_progression)),
         ], headers=(["Rank after:"] + [(self.comp_names_18_19[comp] + ("*" if comp in attended else "")) for comp in
                                        self.comps_18_19])))
 
@@ -338,6 +342,70 @@ class Runner:
         print()
         print_sep()
 
+    def render_html(self, circuit_views: List[CircuitView], group: str):
+        # Compile numbers
+        full = circuit_views[-1]
+        ranks = full.get_group_ranks(group)
+        scores = full.get_group_stats(group)
+        comp_details = {
+        }
+        for comp in full.attended[group]:
+            comp_details_processed = {
+                "name": self.comp_names_18_19[comp],
+                "max": r(full.comp_details[comp]['max']),
+                "min": r(full.comp_details[comp]['min']),
+            }
+            all_rows = {
+                "judges": [n + 1 for n in range(len(full.comp_details[comp]['judge_avgs']))],
+                "judge_avgs": [r(avg) for avg in full.comp_details[comp]['judge_avgs']],
+                "raw": [r(score) for score in full.comp_details[comp]["raw"][group]],
+                "normal": [r(score) for score in full.comp_details[comp]["normal"][group]],
+            }
+            total_judges = len(all_rows["judges"])
+            rows = [
+                {
+                    "judges": all_rows["judges"][n:min(n + JUDGES_PER_ROW, total_judges)],
+                    "judge_avgs": all_rows["judge_avgs"][n:min(n + JUDGES_PER_ROW, total_judges)],
+                    "raw": all_rows["raw"][n:min(n + JUDGES_PER_ROW, total_judges)],
+                    "normal": all_rows["normal"][n:min(n + JUDGES_PER_ROW, total_judges)],
+                }
+                for n in range(0, total_judges, JUDGES_PER_ROW)
+            ]
+            comp_details_processed["rows"] = rows
+
+            comp_details[comp] = comp_details_processed
+
+        rank_progression = [circuit_views[i].get_group_ranks(group) for i in range(len(self.comps_18_19))]
+        rank_table = [
+            [stat['amed'] for stat in rank_progression],
+            [stat['amean'] for stat in rank_progression],
+            [stat['rmed'] for stat in rank_progression],
+            [stat['rmean'] for stat in rank_progression],
+            [stat['total'] for stat in rank_progression],
+        ]
+
+        with open("templates/reportbase.html") as f:
+            t = Template(f.read())
+
+        with open("output/report.html", 'w') as f:
+            f.write(
+                t.render(
+                    group=group,
+                    group_ranks=list(ranks.values())[0:4],
+                    group_scores=[r(score) for score in scores.values()][0:4],
+                    comp_details=comp_details,
+                    all_comps=self.comps_18_19,
+                    comp_names=self.comp_names_18_19,
+                    rank_table=rank_table,
+                    total_groups=len(full.groups),
+                    avg_groups_per_comp=r(full.avg_groups_per_comp),
+                    avg_judges_per_comp=r(full.avg_judges_per_comp),
+                    avg_comps_per_group=r(full.avg_comps_per_group),
+                )
+            )
+
+        HTML("output/report.html").write_pdf("output/report.pdf", stylesheets=[CSS("output/reportbase.css")])
+
     def run(self):
         # Setup
         circuit_views = [self.get_circuit_view(i) for i in range(1, len(self.comps_18_19) + 1)]
@@ -350,7 +418,13 @@ class Runner:
                 break
             print("Invalid group")
 
-        self.print_text_report(circuit_views, group)
+        # self.print_text_report(circuit_views, group)
+        self.render_html(circuit_views, group)
+
+    def helper(self):
+        full = self.get_circuit_view(len(self.comps_18_19))
+        return sorted(({"group": group, "n": len(full.attended[group])} for group in full.groups), key=lambda x: x["n"],
+                      reverse=True)
 
 
 if __name__ == '__main__':

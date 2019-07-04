@@ -69,3 +69,5 @@ fabric.properties
 *.csv
 *.json
 .gitsecret/keys/random_seed
+
+venv
