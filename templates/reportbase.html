@@ -7,12 +7,12 @@
       href="https://fonts.googleapis.com/css?family=DM+Sans|DM+Serif+Text&display=swap"
       rel="stylesheet"
     />
-    <link href="reportbase.css" type="text/css" rel="stylesheet" />
+    <link href="/reportbase.css" type="text/css" rel="stylesheet" />
   </head>
   <body>
-    <img src="./logo.png" height="50" class="header-image"/>
+    <img src="/logo.png" height="50" class="header-image"/>
     <h1>ASA Score Report 2018-19</h1>
-    <h2>{{ group }}</h2>
+    <h2>{{ group.replace("_", " ") }}</h2>
     <div class="flex">
       <table>
         <tr>

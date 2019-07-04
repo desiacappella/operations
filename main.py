@@ -4,6 +4,9 @@ import itertools
 import json
 import os
 import pathlib
+import subprocess
+import sys
+import time
 from typing import List, Dict, Type, Tuple, Any, Union
 
 import numpy
@@ -13,8 +16,16 @@ from tabulate import tabulate
 JUDGES_PER_ROW = 4
 
 SCORES_DIR = 'scores'
+OUTPUT_DIR = 'output'
+TEMPLATES_DIR = 'templates'
+
 RAW = "raw"
 NORMAL = "normal"
+
+EXE = "chromium-browser"
+BASE_ARGS = [
+    "--no-sandbox", "--headless", "--disable-gpu", "--disable-features=VizDisplayCompositor"
+]
 
 Group: Type = str
 Score: Type = float
@@ -24,7 +35,7 @@ ScoresDict: Type = Dict[Group, List[Score]]
 
 
 def comp_to_file(comp: str) -> str:
-    return f"{SCORES_DIR}{os.path.sep}{comp}.csv"
+    return os.path.join(SCORES_DIR, f"{comp}.csv")
 
 
 def handle_comp(comp: str) -> Dict[str, Any]:
@@ -378,10 +389,11 @@ class Runner:
 
             comp_details[comp] = comp_details_processed
 
-        with open("html/reportbase.html") as f:
+        with open(os.path.join(TEMPLATES_DIR, "reportbase.html")) as f:
             t = Template(f.read())
 
-        with open("html/report.html", 'w') as f:
+        pathlib.Path(os.path.join(OUTPUT_DIR, group)).mkdir(parents=True, exist_ok=True)
+        with open(os.path.join(OUTPUT_DIR, group, "report.html"), 'w') as f:
             f.write(
                 t.render(
                     group=group,
@@ -397,20 +409,51 @@ class Runner:
                 )
             )
 
-    def run(self):
+        print(group, "HTML rendered")
+
+    @staticmethod
+    def render_pdf(group: str):
+        pathlib.Path(os.path.join(OUTPUT_DIR, group)).mkdir(parents=True, exist_ok=True)
+        path = os.path.join(OUTPUT_DIR, group, "report.pdf")
+        pdf_arg = f"--print-to-pdf={path}"
+        html = f"http://localhost:8000/{group}/report.html"
+        for n in range(5):
+            ret = subprocess.run([
+                EXE, *BASE_ARGS, pdf_arg, html
+            ])
+            if ret.returncode is 0:
+                break
+            print(group, f"PDF rendering failed, trying again (n={n})")
+            time.sleep(1)
+
+        print(group, "PDF rendered")
+
+    def run(self, single_group: str = None, all_groups=False):
         # Setup
         circuit_views = [self.get_circuit_view(i) for i in range(1, len(self.comps_18_19) + 1)]
         full = circuit_views[-1]
 
-        print("Groups: ", ", ".join(full.groups))
-        while True:
-            group = "Saans"  # input("Enter group: ")
-            if group in full.groups:
-                break
-            print("Invalid group")
+        if not all_groups:
+            if single_group:
+                if single_group in full.groups:
+                    group = single_group
+                else:
+                    print("Invalid group")
+                    sys.exit(1)
+            else:
+                print("Groups: ", ", ".join(full.groups))
+                while True:
+                    group = "Saans"  # input("Enter group: ")
+                    if group in full.groups:
+                        break
+                    print("Invalid group")
 
-            # self.print_text_report(circuit_views, group)
-        self.render_html(circuit_views, group)
+            self.render_html(circuit_views, group)
+            self.render_pdf(group)
+        else:
+            for group in full.groups:
+                self.render_html(circuit_views, group)
+                self.render_pdf(group)
 
     def helper(self):
         full = self.get_circuit_view(len(self.comps_18_19))
@@ -420,4 +463,7 @@ class Runner:
 
 if __name__ == '__main__':
     runner = Runner()
-    runner.run()
+    if len(sys.argv) is 2:
+        runner.run(single_group=sys.argv[1])
+    else:
+        runner.run(all_groups=True)
