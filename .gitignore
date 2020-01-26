@@ -70,4 +70,8 @@ fabric.properties
 *.json
 .gitsecret/keys/random_seed
 
-venv
+# venv
+bin
+lib*
+share
+pyvenv.cfg
