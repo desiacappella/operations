@@ -62,10 +62,12 @@ TF = "textFormat"
 EMPTY = {}  # {VAL: {"stringValue": ""}}
 
 
-def overview_sheet(teams: List[str]):
+def overview_sheet(teams: List[str], judges):
     """
     @returns SHEET 1: Just a basic list of teams
     """
+
+    place = chr(ord('A') + 2*len(judges) + 3)
 
     team_rows = [
         {
@@ -79,7 +81,7 @@ def overview_sheet(teams: List[str]):
                     FORM: {HA: "CENTER"}
                 },
                 {
-                    VAL: {"formulaValue": f"='{SHEET_CALC}'!L{idx+3}"},
+                    VAL: {"formulaValue": f"='{SHEET_CALC}'!{place}{idx+3}"},
                     FORM: {HA: "CENTER"}
                 }
             ]
@@ -569,7 +571,7 @@ def create_sheet(sheet_service, judges: List[str], teams: List[str]):
 
     properties = {"title": "Test Spreadsheet"}
     sheets = [
-        overview_sheet(teams=teams),
+        overview_sheet(teams=teams, judges=judges),
         calculator_sheet(judges=judges, teams=teams)
     ] + [
         judge_sheet(teams=teams, judges=judges, judge_idx=idx)
