@@ -12,47 +12,9 @@ Stat: Type = float
 Rank: Type = int
 ScoresDict: Type = Dict[Group, List[Score]]
 
-SCORES_DIR = os.path.join('scores', '18-19')
+SCORES_DIR = 'scores'
 RAW = "raw"
 NORMAL = "normal"
-
-
-def comp_to_file(comp: str) -> str:
-    return os.path.join(SCORES_DIR, f"{comp}.csv")
-
-
-def handle_comp(comp: str) -> Dict[str, Any]:
-    """
-    Handles a single competition.
-    :param comp: name of comp
-    :return: raw and normalized score dictionary, mapping group to list of scores for this comp
-    """
-    with open(comp_to_file(comp), mode='r') as infile:
-        # Trick to calculate the number of judges ahead of time
-        col_reader, reader = itertools.tee(csv.reader(infile))
-
-        num_judges = len(next(col_reader)) - 1
-        del col_reader
-
-        # raw judges' scores per group
-        raw = {oScores[0]: [float(x) for x in oScores[1:]]
-               for oScores in reader}
-
-    # normalize for each group for this comp
-    judge_avgs = [numpy.mean([raw[group][i] for group in raw])
-                  for i in range(num_judges)]
-
-    normal = {group: [x * 100 / judge_avgs[i]
-                      for i, x in enumerate(raw[group])] for group in raw}
-
-    final_scores = {group: numpy.average(normal[group]) for group in normal}
-    final_scores_list = final_scores.values()
-    comp_max = max(final_scores_list)
-    comp_min = min(final_scores_list)
-    # TODO judge names
-
-    return {RAW: raw, NORMAL: normal, 'final_scores': final_scores, 'max': comp_max, 'min': comp_min,
-            'judge_avgs': judge_avgs}
 
 
 def build_totals(all_scores: Dict[str, Dict[str, ScoresDict]]) -> Tuple[ScoresDict, ScoresDict]:
@@ -103,15 +65,20 @@ def get_ranks(stats_map: Dict[Group, Stat]) -> Dict[Group, Rank]:
 
 class CircuitView:
     """
-    Represents the state of the circuit
+    Represents the state of the circuit after a certain number of competitions have occurred.
     """
 
-    def __init__(self, comps: List[str], setup=True):
+    def __init__(self, year: str, comps: List[str] = None, setup=True):
+        if not comps:
+            comps = [x[0:x.find(".csv")] for x in os.listdir(
+                os.path.join(SCORES_DIR, year)) if x.endswith(".csv")]
+
+        self.year = year
         self.comps = comps
 
         if setup:
             self.comp_details: Dict[str, Dict[str, Any]] = {
-                comp: handle_comp(comp) for comp in comps
+                comp: self.handle_comp(comp) for comp in comps
             }
 
             # build normals
@@ -152,7 +119,7 @@ class CircuitView:
         with open(filename, 'r') as f:
             d = json.load(f)
 
-        cv = CircuitView(d['comps'], False)
+        cv = CircuitView(d['year'], d['comps'], False)
         cv.comp_details = d['comp_details']
         cv.groups = d['groups']
         cv.amed = d['amed']
@@ -186,7 +153,7 @@ class CircuitView:
 
     def save_standings(self, filename: str):
         """
-        Bucketize and get standings. Save to filename
+        Bucketize and get standings. Save to filename (CSV)
         :return:
         """
         buckets: Dict[float, List[str]] = {}
@@ -209,7 +176,8 @@ class CircuitView:
         with open(filename, mode="w") as outfile:
             outfile.write("Threshold,Groups\n")
             for bucket in ordered_buckets:
-                outfile.write(f"{bucket},{ordered_buckets[bucket]}\n")
+                outfile.write(
+                    f"{bucket},{' '.join(ordered_buckets[bucket])}\n")
 
     def get_group_stats(self, group: Group):
         return {
@@ -227,3 +195,40 @@ class CircuitView:
             "rmean": self.rmean_rank[group] if group in self.rmean_rank else len(self.groups) + 1,
             "total": len(self.groups),
         }
+
+    def handle_comp(self, comp: str) -> Dict[str, Any]:
+        """
+        Handles a single competition.
+        :param comp: name of comp
+        :return: raw and normalized score dictionary, mapping group to list of scores for this comp
+        """
+        with open(self.comp_to_file(comp), mode='r') as infile:
+            # Trick to calculate the number of judges ahead of time
+            col_reader, reader = itertools.tee(csv.reader(infile))
+
+            num_judges = len(next(col_reader)) - 1
+            del col_reader
+
+            # raw judges' scores per group
+            raw = {oScores[0]: [float(x) for x in oScores[1:]]
+                   for oScores in reader}
+
+        # normalize for each group for this comp
+        judge_avgs = [numpy.mean([raw[group][i] for group in raw])
+                      for i in range(num_judges)]
+
+        normal = {group: [x * 100 / judge_avgs[i]
+                          for i, x in enumerate(raw[group])] for group in raw}
+
+        final_scores = {group: numpy.average(
+            normal[group]) for group in normal}
+        final_scores_list = final_scores.values()
+        comp_max = max(final_scores_list)
+        comp_min = min(final_scores_list)
+        # TODO judge names
+
+        return {RAW: raw, NORMAL: normal, 'final_scores': final_scores, 'max': comp_max, 'min': comp_min,
+                'judge_avgs': judge_avgs}
+
+    def comp_to_file(self, comp: str) -> str:
+        return os.path.join(SCORES_DIR, self.year, f"{comp}.csv")

@@ -1,10 +1,12 @@
 # Custom
-*.csv
-*.json
+credentials.json
 .gitsecret/keys/random_seed
 
 # venv
 env
+
+# python
+__pycache__
 
 # pickle
 *.pickle

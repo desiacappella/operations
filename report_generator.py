@@ -52,6 +52,7 @@ def t_print_table(s: str, n=1):
 
 class Runner:
     def __init__(self):
+        # TODO remove and replace with details.json
         # Competitions for 2018-19
         self.comps_18_19: List[str] = ['jeena', 'anahat',
                                        'sangeet', 'mehfil', 'sahana', 'gathe', 'awaazein']
