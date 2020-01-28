@@ -68,17 +68,19 @@ class CircuitView:
     Represents the state of the circuit after a certain number of competitions have occurred.
     """
 
-    def __init__(self, year: str, comps: List[str] = None, setup=True):
-        if not comps:
-            comps = [x[0:x.find(".csv")] for x in os.listdir(
-                os.path.join(SCORES_DIR, year)) if x.endswith(".csv")]
+    def __init__(self, year: str, num: int, setup=True):
+        with open(os.path.join(SCORES_DIR, year, "details.json")) as infile:
+            _comps = json.load(infile)["order"]
+
+        if num < 0 or num > len(_comps):
+            raise "Illegal argument: num"
 
         self.year = year
-        self.comps = comps
+        self.comps = _comps[0:num]
 
         if setup:
             self.comp_details: Dict[str, Dict[str, Any]] = {
-                comp: self.handle_comp(comp) for comp in comps
+                comp: self.handle_comp(comp) for comp in self.comps
             }
 
             # build normals
@@ -151,11 +153,7 @@ class CircuitView:
                                self.rmean_rank[t] <= threshold]
             print(selected_groups)
 
-    def save_standings(self, filename: str):
-        """
-        Bucketize and get standings. Save to filename (CSV)
-        :return:
-        """
+    def get_standings(self):
         buckets: Dict[float, List[str]] = {}
         print(f"{len(self.groups)} groups")
 
@@ -170,14 +168,32 @@ class CircuitView:
         buckets = {key: sorted(value) for (key, value) in buckets.items()}
 
         # Convert to OrderedDict for output
-        ordered_buckets = collections.OrderedDict(
-            sorted(iter(buckets.items())))
+        return collections.OrderedDict(sorted(iter(buckets.items())))
+
+    def save_standings(self, filename: str):
+        """
+        Bucketize and get standings. Save to filename (CSV)
+        :return:
+        """
+        ordered_buckets = self.get_standings()
 
         with open(filename, mode="w") as outfile:
             outfile.write("Threshold,Groups\n")
             for bucket in ordered_buckets:
                 outfile.write(
                     f"{bucket},{' '.join(ordered_buckets[bucket])}\n")
+
+    def save_standings_json(self, filename: str):
+        ordered_buckets = self.get_standings()
+
+        with open(filename, mode="w") as outfile:
+            json.dump([
+                {
+                    "threshold": bucket,
+                    "groups": ordered_buckets[bucket]
+                }
+                for bucket in ordered_buckets
+            ], outfile)
 
     def get_group_stats(self, group: Group):
         return {

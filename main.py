@@ -2,8 +2,9 @@ from circuit_view import CircuitView
 
 
 def main():
-    cv = CircuitView("18-19")
-    cv.save_standings("lulmao.csv")
+    for i in range(0, 8):
+        cv = CircuitView("18-19", i)
+        cv.save_standings_json(f"thresholds-{i}.json")
 
 
 if __name__ == "__main__":

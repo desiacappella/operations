@@ -13,3 +13,6 @@ __pycache__
 
 # VSCode
 .vscode
+
+# JS
+node_modules
