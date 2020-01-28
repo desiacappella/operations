@@ -3,6 +3,9 @@ autopep8==1.5
 cachetools==4.0.0
 certifi==2019.11.28
 chardet==3.0.4
+Click==7.0
+Flask==1.1.1
+Flask-Cors==3.0.8
 google-api-python-client==1.7.11
 google-auth==1.11.0
 google-auth-httplib2==0.0.3
@@ -11,6 +14,7 @@ gunicorn==20.0.4
 httplib2==0.17.0
 idna==2.8
 isort==4.3.21
+itsdangerous==1.1.0
 Jinja2==2.11.0
 lazy-object-proxy==1.4.3
 MarkupSafe==1.1.1
@@ -29,4 +33,5 @@ tabulate==0.8.6
 typed-ast==1.4.1
 uritemplate==3.0.1
 urllib3==1.25.8
+Werkzeug==0.16.1
 wrapt==1.11.2
