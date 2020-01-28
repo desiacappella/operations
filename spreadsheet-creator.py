@@ -39,13 +39,23 @@ SHEET_OVERVIEW = "Overview"
 SHEET_CALC = "Calculator"
 SHEET_CALC_ID = 1
 
-HEADING_COLOR = "#e6b8af"
+
+def conv(n):
+    return n/255
+
+
+# "#e6b8af"
+HEADING_COLOR = {
+    "red": conv(230),
+    "green": conv(184),
+    "blue": conv(175)
+}
 
 
 VAL = "userEnteredValue"
 FORM = "userEnteredFormat"
 HA = "horizontalAlignment"
-VA = "verticalAlignment"  # TODO
+VA = "verticalAlignment"
 TF = "textFormat"
 
 
@@ -117,13 +127,19 @@ def calculator_sheet(judges: List[str], teams: List[str]):
         "values": [
             {
                 VAL: {"stringValue": "Teams"},
-                FORM: {HA: "CENTER", TF: {
-                    "bold": True, "fontSize": 14}}
+                FORM: {
+                    HA: "CENTER", VA: "MIDDLE",
+                    TF: {
+                        "bold": True, "fontSize": 14
+                    },
+                    "backgroundColor": HEADING_COLOR
+                }
             },
             {
                 VAL: {"stringValue": "Raw Scores"},
                 FORM: {HA: "CENTER", TF: {
-                    "bold": True, "fontSize": 14}}
+                    "bold": True, "fontSize": 14},
+                    "backgroundColor": HEADING_COLOR}
             }
         ] + [
             EMPTY for i in range(len(judges)-1)
@@ -131,7 +147,8 @@ def calculator_sheet(judges: List[str], teams: List[str]):
             {
                 VAL: {"stringValue": "Converted Scores"},
                 FORM: {HA: "CENTER", TF: {
-                    "bold": True, "fontSize": 14}}
+                    "bold": True, "fontSize": 14},
+                    "backgroundColor": HEADING_COLOR}
             }
         ] + [
             EMPTY for i in range(len(judges)-1)
@@ -139,7 +156,9 @@ def calculator_sheet(judges: List[str], teams: List[str]):
             {
                 VAL: {"stringValue": "Results"},
                 FORM: {HA: "CENTER", TF: {
-                    "bold": True, "fontSize": 14}}
+                    "bold": True, "fontSize": 14},
+                    "backgroundColor": HEADING_COLOR
+                }
             },
             EMPTY, EMPTY
         ]
@@ -152,24 +171,24 @@ def calculator_sheet(judges: List[str], teams: List[str]):
                 VAL: {"formulaValue": f"='Judge {idx+1}'!$A$1"},
                 FORM: {HA: "CENTER", TF: {
                     "italic": True, "fontSize": 14
-                }}
+                }, "backgroundColor": HEADING_COLOR}
             }
             for idx in range(len(judges))
         ] * 2) + [
             {
                 VAL: {"stringValue": "Average"},
                 FORM: {HA: "CENTER", TF: {
-                    "bold": True, "fontSize": 14}}
+                    "bold": True, "fontSize": 14}, "backgroundColor": HEADING_COLOR}
             },
             {
                 VAL: {"stringValue": "Sanity"},
                 FORM: {HA: "CENTER", TF: {
-                    "bold": True, "fontSize": 14}}
+                    "bold": True, "fontSize": 14}, "backgroundColor": HEADING_COLOR}
             },
             {
                 VAL: {"stringValue": "Place"},
                 FORM: {HA: "CENTER", TF: {
-                    "bold": True, "fontSize": 14}}
+                    "bold": True, "fontSize": 14}, "backgroundColor": HEADING_COLOR}
             }
         ]
     }
@@ -182,9 +201,17 @@ def calculator_sheet(judges: List[str], teams: List[str]):
 
     def get_raw_scores(team_idx):
         return [
-            ({VAL: {
-                "formulaValue": f"=TRANSPOSE('Judge {judge_idx+1}'!$B17:${chr(ord('B') + len(teams) - 1)}17)"}}
-                if team_idx is 0 else EMPTY)
+            ({
+                VAL: {
+                    "formulaValue": f"=TRANSPOSE('Judge {judge_idx+1}'!$B17:${chr(ord('B') + len(teams) - 1)}17)"
+                },
+                FORM: {
+                    HA: "CENTER"
+                }
+            }
+                if team_idx is 0 else {
+                FORM: {HA: "CENTER"}
+            })
             for (judge_idx, judge) in enumerate(judges)
         ]
 
@@ -223,22 +250,25 @@ def calculator_sheet(judges: List[str], teams: List[str]):
     team_rows = [
         {
             "values": [
-                {VAL: {"stringValue": team}},
+                {VAL: {"stringValue": team}, FORM: {HA: "CENTER"}},
             ] + get_raw_scores(team_idx) + get_converted_scores(team_idx) + [
                 {
                     VAL: {
                         "formulaValue": f"={error_wrapper(get_average(team_idx))}"
-                    }
+                    },
+                    FORM: {HA: "CENTER"}
                 },
                 {
                     VAL: {
                         "formulaValue": f"={get_sanity(team_idx)}"
-                    }
+                    },
+                    FORM: {HA: "CENTER"}
                 },
                 {
                     VAL: {
                         "formulaValue": f"={error_wrapper(get_place(team_idx))}"
-                    }
+                    },
+                    FORM: {HA: "CENTER"}
                 }
             ]
         }
@@ -294,26 +324,48 @@ def calculator_sheet(judges: List[str], teams: List[str]):
     }
 
 
-CATEGORIES: List[str] = [
-    "Balance & Blend\n(10 Pts.)",
-    "Arrangement and Style\n(10 Pts.)",
-    "Musical Nuances\n(10 Pts.)",
-    "Solo Interpretation\n(10 Pts.)",
-    "Fusion\n(5 Pts.)",
-    "Creativity and Visual Cohesiveness\n(10 Pts.)",
-    "Effectiveness of Presentation\n(10 Pts.)",
-    "Professionalism\n(5 Pts.)",
-    "Overall Performance\n(10 Pts.)",
+CATEGORIES: List = [
+    # vocal
+    {"name": "Balance & Blend\n(10 Pts.)", "color": {"red": conv(
+        217), "green": conv(210), "blue": conv(233)}},
+    {"name": "Arrangement and Style\n(10 Pts.)", "color": {
+        "red": conv(217), "green": conv(210), "blue": conv(233)}},
+    {"name": "Musical Nuances\n(10 Pts.)", "color": {"red": conv(
+        217), "green": conv(210), "blue": conv(233)}},
+    {"name": "Solo Interpretation\n(10 Pts.)", "color": {"red": conv(
+        217), "green": conv(210), "blue": conv(233)}},
+    {"name": "Fusion\n(5 Pts.)", "color": {"red": conv(
+        217), "green": conv(210), "blue": conv(233)}},
+    # visual
+    {"name": "Creativity and Visual Cohesiveness\n(10 Pts.)", "color": {
+        "red": conv(234), "green": conv(209), "blue": conv(220)}},
+    {"name": "Effectiveness of Presentation\n(10 Pts.)", "color": {
+        "red": conv(234), "green": conv(209), "blue": conv(220)}},
+    {"name": "Professionalism\n(5 Pts.)", "color": {"red": conv(
+        234), "green": conv(209), "blue": conv(220)}},
+    # overall
+    {"name": "Overall Performance\n(10 Pts.)", "color": {"red": conv(
+        207), "green": conv(225), "blue": conv(243)}},
 ]
+VOCAL_C = {
+    "red": conv(180), "green": conv(167), "blue": conv(214),
+}
+VISUAL_C = {
+    "red": conv(213), "green": conv(166), "blue": conv(189),
+}
+OVERALL_C = {
+    "red": conv(159), "green": conv(197), "blue": conv(232),
+}
+
 GROUPS = [
-    "Vocal Performance\n(45 Pts.)",
-    "Visual Performance\n(25 Pts.)",
-    "Overall Performance\n(10 Pts.)",
+    {"name": "Vocal Performance\n(45 Pts.)", "color": VOCAL_C},
+    {"name": "Visual Performance\n(25 Pts.)", "color": VISUAL_C},
+    {"name": "Overall Performance\n(10 Pts.)", "color": OVERALL_C},
 ]
 SCALED = [
-    "Vocal Performance\n(50%)",
-    "Visual Performance\n(35%)",
-    "Overall Performance\n(15%)",
+    {"name": "Vocal Performance\n(50%)", "color": VOCAL_C},
+    {"name": "Visual Performance\n(35%)", "color": VISUAL_C},
+    {"name": "Overall Performance\n(15%)", "color": OVERALL_C},
 ]
 
 
@@ -322,17 +374,25 @@ def judge_sheet(judges, teams, judge_idx):
         "values": [
             {
                 VAL: {"stringValue": judges[judge_idx]},
-                FORM: {HA: "CENTER", TF: {"bold": True, "fontSize": 14}}
+                FORM: {HA: "CENTER", TF: {"bold": True, "fontSize": 14, "foregroundColor": {
+                    "red": 1, "blue": 1, "green": 1
+                }}, "backgroundColor": {
+                    "red": 0.4, "blue": 0.4, "green": 0.4
+                }}
             }
         ] + [
             {
                 VAL: {
                     "formulaValue": f"=TRANSPOSE({SHEET_CALC}!A3:A{3 + len(teams) - 1})"},
-                FORM: {HA: "CENTER", TF: {"bold": True}}
+                FORM: {HA: "CENTER", VA: "MIDDLE", TF: {"bold": True}, "backgroundColor": {
+                    "red": 0.851, "blue": 0.851, "green": 0.851
+                }}
             }
         ] + [
             {
-                FORM: {HA: "CENTER", TF: {"bold": True}}
+                FORM: {HA: "CENTER", VA: "MIDDLE", TF: {"bold": True}, "backgroundColor": {
+                    "red": 0.851, "blue": 0.851, "green": 0.851
+                }}
             }
             for idx in range(1, len(teams))
         ]
@@ -342,16 +402,20 @@ def judge_sheet(judges, teams, judge_idx):
             "values": [
                 {
                     # TODO textFormatRuns
-                    VAL: {"stringValue": categ},
+                    VAL: {"stringValue": categ["name"]},
                     FORM: {
-                        HA: "CENTER", TF: {"bold": True}
-                    }
+                        HA: "CENTER", TF: {"bold": True},
+                        "backgroundColor": categ["color"]
+                    },
                 }
             ] + [
                 {
                     VAL: {"numberValue": random.randint(1, 5)},
                     FORM: {HA: "CENTER", VA: "MIDDLE", "numberFormat": {
-                        "pattern": "#,##0.00", "type": "Number"}}
+                        "pattern": "#,##0.00", "type": "Number"},
+                        "backgroundColor": {
+                            "red": conv(217), "green": conv(234), "blue": conv(211)
+                    }}
                 }
                 for team in teams
             ]
@@ -362,9 +426,9 @@ def judge_sheet(judges, teams, judge_idx):
         {
             "values": [
                 {
-                    VAL: {"stringValue": GROUPS[0]},
+                    VAL: {"stringValue": GROUPS[0]["name"]},
                     FORM: {
-                        HA: "CENTER", TF: {"bold": True}
+                        HA: "CENTER", TF: {"bold": True}, "backgroundColor": GROUPS[0]["color"]
                     }
                 }
             ] + [
@@ -379,9 +443,9 @@ def judge_sheet(judges, teams, judge_idx):
         {
             "values": [
                 {
-                    VAL: {"stringValue": GROUPS[1]},
+                    VAL: {"stringValue": GROUPS[1]["name"]},
                     FORM: {
-                        HA: "CENTER", TF: {"bold": True}
+                        HA: "CENTER", TF: {"bold": True}, "backgroundColor": GROUPS[1]["color"]
                     }
                 }
             ] + [
@@ -396,9 +460,9 @@ def judge_sheet(judges, teams, judge_idx):
         {
             "values": [
                 {
-                    VAL: {"stringValue": GROUPS[2]},
+                    VAL: {"stringValue": GROUPS[2]["name"]},
                     FORM: {
-                        HA: "CENTER", TF: {"bold": True}
+                        HA: "CENTER", TF: {"bold": True}, "backgroundColor": GROUPS[2]["color"]
                     }
                 }
             ] + [
@@ -415,32 +479,30 @@ def judge_sheet(judges, teams, judge_idx):
         {
             "values": [
                 {
-                    VAL: {"stringValue": SCALED[0]},
+                    VAL: {"stringValue": SCALED[0]["name"]},
                     FORM: {
-                        HA: "CENTER", TF: {"bold": True}
+                        HA: "CENTER", TF: {"bold": True}, "backgroundColor": SCALED[0]["color"]
                     }
                 }
             ] + [
                 {
                     VAL: {"formulaValue": f"=({chr(ord('B') + team_idx)}$11/45)*50"},
-                    FORM: {HA: "CENTER", VA: "MIDDLE", "numberFormat": {
-                        "pattern": "#,##0.00", "type": "Number"}}
+                    FORM: {HA: "CENTER", VA: "MIDDLE"}
                 }
                 for (team_idx, team) in enumerate(teams)
             ]
         }, {
             "values": [
                 {
-                    VAL: {"stringValue": SCALED[1]},
+                    VAL: {"stringValue": SCALED[1]["name"]},
                     FORM: {
-                        HA: "CENTER", TF: {"bold": True}
+                        HA: "CENTER", TF: {"bold": True}, "backgroundColor": SCALED[0]["color"]
                     }
                 }
             ] + [
                 {
                     VAL: {"formulaValue": f"=({chr(ord('B') + team_idx)}$12/25)*35"},
-                    FORM: {HA: "CENTER", VA: "MIDDLE", "numberFormat": {
-                        "pattern": "#,##0.00", "type": "Number"}}
+                    FORM: {HA: "CENTER", VA: "MIDDLE"}
                 }
                 for (team_idx, team) in enumerate(teams)
             ]
@@ -448,23 +510,40 @@ def judge_sheet(judges, teams, judge_idx):
         {
             "values": [
                 {
-                    VAL: {"stringValue": SCALED[2]},
+                    VAL: {"stringValue": SCALED[2]["name"]},
                     FORM: {
-                        HA: "CENTER", TF: {"bold": True}
+                        HA: "CENTER", TF: {"bold": True}, "backgroundColor": SCALED[0]["color"]
                     }
                 }
             ] + [
                 {
                     VAL: {"formulaValue": f"=({chr(ord('B') + team_idx)}$13/10)*15"},
-                    FORM: {HA: "CENTER", VA: "MIDDLE", "numberFormat": {
-                        "pattern": "#,##0.00", "type": "Number"}}
+                    FORM: {HA: "CENTER", VA: "MIDDLE"}
                 }
                 for (team_idx, team) in enumerate(teams)
             ]
         }
     ]
-    total = {"values": [{VAL: {"stringValue": f"Total Score Judge {judge_idx}"}, FORM: {HA: "CENTER", TF: {"bold": True}}}] + [{VAL: {"formulaValue": f"=SUM({chr(ord('B') + team_idx)}$14:{chr(ord('B') + team_idx)}$16)"}, FORM: {
-        HA: "CENTER", VA: "MIDDLE", "numberFormat": {"pattern": "#,##0.00", "type": "Number"}}} for (team_idx, team) in enumerate(teams)]}
+    total = {
+        "values": [
+            {
+                VAL: {
+                    "stringValue": f"Total Score Judge {judge_idx}"
+                }, FORM: {
+                    HA: "CENTER", TF: {"bold": True}
+                }
+            }
+        ] + [
+            {
+                VAL: {
+                    "formulaValue": f"=SUM({chr(ord('B') + team_idx)}$14:{chr(ord('B') + team_idx)}$16)"
+                },
+                FORM: {
+                    HA: "CENTER", VA: "MIDDLE",
+                }
+            }
+            for (team_idx, team) in enumerate(teams)
+        ]}
 
     return {
         "data": [
@@ -512,8 +591,8 @@ def main():
         sys.stderr.write("Unable to get credentials")
         return 1
 
-    judges = [f"JN {x+1}" for x in range(4)]
-    teams = [f"Team {x+1}" for x in range(5)]
+    judges = [f"JN {x+1}" for x in range(3)]
+    teams = [f"Team {x+1}" for x in range(9)]
 
     # Set up Google Sheets service
     # pylint: disable=no-member
