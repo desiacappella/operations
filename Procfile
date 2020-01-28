@@ -1,1 +1,1 @@
-web: gunicorn standings-server:app
+web: gunicorn standings_server:app
