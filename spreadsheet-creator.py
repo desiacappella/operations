@@ -36,8 +36,23 @@ def get_creds():
 
 
 SHEET_OVERVIEW = "Overview"
+SHEET_OVERVIEW_ID = 0
 SHEET_CALC = "Calculator"
 SHEET_CALC_ID = 1
+
+
+def get_protection(id):
+    return {
+        "editors": {
+            "users": [
+                "sarang@desiacappella.org",
+                "eshaan@desiacappella.org",
+            ]
+        },
+        "range": {
+            "sheetId": id
+        }
+    }
 
 
 def conv(n):
@@ -116,11 +131,49 @@ def overview_sheet(teams: List[str], judges):
         ],
         "properties": {
             "title": SHEET_OVERVIEW,
+            "sheetId": SHEET_OVERVIEW_ID,
             "gridProperties": {
                 "columnCount": 3,
                 "rowCount": len(teams) + 1
             }
         },
+        "conditionalFormats": [
+            {
+                "ranges": [
+                    {
+                        "sheetId": SHEET_OVERVIEW_ID,
+                        "startRowIndex": 1,
+                        "startColumnIndex": 2,
+                        "endRowIndex": 1 + len(teams),
+                        "endColumnIndex": 3,
+                    }
+                ],
+                "gradientRule": {
+                    "minpoint": {
+                        "color": {
+                            "red": conv(87), "green": conv(187), "blue": conv(138)
+                        },
+                        "type": "MIN"
+                    },
+                    "midpoint": {
+                        "color": {
+                            "red": conv(255), "green": conv(214), "blue": conv(102)
+                        },
+                        "type": "PERCENTILE",
+                        "value": "50",
+                    },
+                    "maxpoint": {
+                        "color": {
+                            "red": conv(230), "green": conv(124), "blue": conv(115)
+                        },
+                        "type": "MAX"
+                    }
+                }
+            }
+        ],
+        "protectedRanges": [
+            get_protection(SHEET_OVERVIEW_ID)
+        ],
     }
 
 
@@ -428,6 +481,9 @@ def calculator_sheet(judges: List[str], teams: List[str]):
                     }
                 }
             }
+        ],
+        "protectedRanges": [
+            get_protection(SHEET_CALC_ID)
         ]
     }
 
@@ -694,6 +750,17 @@ def judge_sheet(judges, teams, judge_idx):
             for (team_idx, team) in enumerate(teams)
         ]}
 
+    protection = get_protection(2+judge_idx)
+    protection["unprotectedRanges"] = [
+        {
+            "sheetId": 2+judge_idx,
+            "startRowIndex": 1,
+            "startColumnIndex": 1,
+            "endRowIndex": 10,
+            "endColumnIndex": 1+len(teams)
+        }
+    ]
+
     return {
         "data": [
             {
@@ -716,8 +783,12 @@ def judge_sheet(judges, teams, judge_idx):
             "gridProperties": {
                 "columnCount": 1 + len(teams),
                 "rowCount": 17,
-            }
-        }
+            },
+            "sheetId": 2+judge_idx
+        },
+        "protectedRanges": [
+            protection,
+        ]
     }
 
 
