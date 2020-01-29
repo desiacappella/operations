@@ -574,7 +574,7 @@ def judge_sheet(judges, teams, judge_idx):
                 }
             ] + [
                 {
-                    VAL: {"numberValue": random.randint(1, 5)},
+                    VAL: {"numberValue": 0},
                     FORM: {HA: "CENTER", VA: "MIDDLE", "numberFormat": {
                         "pattern": "#,##0.00", "type": "Number"},
                         "backgroundColor": {
@@ -792,11 +792,11 @@ def judge_sheet(judges, teams, judge_idx):
     }
 
 
-def create_sheet(sheet_service, judges: List[str], teams: List[str]):
+def create_spreadsheet(sheet_service, name: str, judges: List[str], teams: List[str]):
     if len(teams) is 0 or len(judges) is 0:
         raise "Need more than 0 teams and judges"
 
-    properties = {"title": "Test Spreadsheet"}
+    properties = {"title": name}
     sheets = [
         overview_sheet(teams=teams, judges=judges),
         calculator_sheet(judges=judges, teams=teams)
@@ -820,15 +820,16 @@ def main():
         sys.stderr.write("Unable to get credentials")
         return 1
 
-    judges = [f"JN {x+1}" for x in range(3)]
+    judges = [f"Judge {x+1}" for x in range(3)]
     teams = [f"Team {x+1}" for x in range(9)]
+    name = "Test Spreadsheet"
 
     # Set up Google Sheets service
     # pylint: disable=no-member
     sheet = build('sheets', 'v4', credentials=creds).spreadsheets()
 
-    result = create_sheet(
-        sheet, judges, teams
+    result = create_spreadsheet(
+        sheet, name, judges, teams
     )
 
     if result:
