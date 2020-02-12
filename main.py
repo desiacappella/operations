@@ -1,10 +1,14 @@
+import json
+
 from circuit_view import CircuitView
+from comp_score_mgr import LocalScoreManager
 
 
 def main():
-    for i in range(0, 8):
-        cv = CircuitView("18-19", i)
-        cv.save_standings_json(f"thresholds-{i}.json")
+    cv = CircuitView()
+    cv.process(5, "19-20")
+
+    print(json.dumps(cv.get_standings(), indent=4))
 
 
 if __name__ == "__main__":

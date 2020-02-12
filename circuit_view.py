@@ -6,13 +6,9 @@ import itertools
 import csv
 from typing import Type, Dict, List, Any, Tuple
 
-Group: Type = str
-Score: Type = float
-Stat: Type = float
-Rank: Type = int
-ScoresDict: Type = Dict[Group, List[Score]]
+from comp_score_mgr import LocalScoreManager
+from util import Group, Score, Stat, Rank, ScoresDict, SCORES_DIR
 
-SCORES_DIR = 'scores'
 RAW = "raw"
 NORMAL = "normal"
 
@@ -21,7 +17,7 @@ def build_totals(all_scores: Dict[str, Dict[str, ScoresDict]]) -> Tuple[ScoresDi
     """
     Builds up all of the raw and normalized scores across the given competitions for all groups.
     :param all_scores: all competition scores
-    :return:
+    :return: tuple of [raw scores dict, normalized scores dict]
     """
     all_raw: ScoresDict = {}
     all_normal: ScoresDict = {}
@@ -65,55 +61,66 @@ def get_ranks(stats_map: Dict[Group, Stat]) -> Dict[Group, Rank]:
 
 class CircuitView:
     """
-    Represents the state of the circuit after a certain number of competitions have occurred.
+    Represents the state of the circuit.
     """
 
-    def __init__(self, year: str, num: int, setup=True):
+    def process(self, num: int, year: str):
+        """
+        Process competition scores to produce a CircuitView. `num` is the number of competitions to
+        process. If num is -1, processes all competitions. `year` is the year to process.
+        """
+        self.year = year
+
+        # First, convert (num, year) to comps
         with open(os.path.join(SCORES_DIR, year, "details.json")) as infile:
             _comps = json.load(infile)["order"]
 
-        if num < 0 or num > len(_comps):
+        if num > len(_comps):
             raise "Illegal argument: num"
 
-        self.year = year
+        if num < 0:
+            num = len(_comps)
+
         self.comps = _comps[0:num]
 
-        if setup:
-            self.comp_details: Dict[str, Dict[str, Any]] = {
-                comp: self.handle_comp(comp) for comp in self.comps
-            }
+        print("comps:")
+        print(self.comps)
 
-            # build normals
-            raw, normal = build_totals(self.comp_details)
-            self.groups = list(raw.keys())
+        self.comp_details: Dict[str, Dict[str, Any]] = {
+            comp: self.handle_comp(comp) for comp in self.comps
+        }
 
-            # evaluate numbers
-            self.amed, self.amean = get_stats(raw)
-            self.rmed, self.rmean = get_stats(normal)
+        # build normals
+        raw, normal = build_totals(self.comp_details)
+        self.groups = list(raw.keys())
 
-            # get ranks
-            self.amed_rank = get_ranks(self.amed)
-            self.amean_rank = get_ranks(self.amean)
-            self.rmed_rank = get_ranks(self.rmed)
-            self.rmean_rank = get_ranks(self.rmean)
+        # evaluate numbers
+        self.amed, self.amean = get_stats(raw)
+        self.rmed, self.rmean = get_stats(normal)
 
-            # compute misc. stats
-            self.attended: Dict[Group, List[str]] = {
-                group: [
-                    comp for comp in self.comps if group in self.comp_details[comp][RAW]]
-                for group in self.groups
-            }
-            self.avg_groups_per_comp = numpy.mean(
-                [len(self.comp_details[comp][RAW]) for comp in self.comp_details])
-            self.avg_judges_per_comp = numpy.mean(
-                [len(self.comp_details[comp]["judge_avgs"]) for comp in self.comp_details])
-            self.avg_comps_per_group = numpy.mean(
-                [len(self.attended[group]) for group in self.groups])
-            self.best_score = {
-                "group": "Lel",
-                "comp": "Lol",
-                "score": 420.69
-            }
+        # get ranks
+        self.amed_rank = get_ranks(self.amed)
+        self.amean_rank = get_ranks(self.amean)
+        self.rmed_rank = get_ranks(self.rmed)
+        self.rmean_rank = get_ranks(self.rmean)
+
+        # compute misc. stats
+        self.attended: Dict[Group, List[str]] = {
+            group: [
+                comp for comp in self.comps if group in self.comp_details[comp][RAW]]
+            for group in self.groups
+        }
+        self.avg_groups_per_comp = numpy.mean(
+            [len(self.comp_details[comp][RAW]) for comp in self.comp_details])
+        self.avg_judges_per_comp = numpy.mean(
+            [len(self.comp_details[comp]["judge_avgs"]) for comp in self.comp_details])
+        self.avg_comps_per_group = numpy.mean(
+            [len(self.attended[group]) for group in self.groups])
+        self.best_score = {
+            "group": "Lel",
+            "comp": "Lol",
+            "score": 420.69
+        }
 
     # TODO look up a better way to persist python classes to files
     @staticmethod
@@ -121,7 +128,9 @@ class CircuitView:
         with open(filename, 'r') as f:
             d = json.load(f)
 
-        cv = CircuitView(d['year'], d['comps'], False)
+        cv = CircuitView()
+        cv.year = d['year']
+        cv.comps = d['comps']
         cv.comp_details = d['comp_details']
         cv.groups = d['groups']
         cv.amed = d['amed']
@@ -144,18 +153,18 @@ class CircuitView:
         with open(filename, 'w') as f:
             json.dump(self.__dict__, f, indent=4)
 
-    def select_groups(self):
-        while True:
-            threshold = int(input("Enter threshold: "))
-            selected_groups = [t for t in self.groups if
-                               self.amed_rank[t] <= threshold and self.amean_rank[t] <= threshold and self.rmed_rank[
-                                   t] <= threshold and
-                               self.rmean_rank[t] <= threshold]
-            print(selected_groups)
+    def select_groups(self, threshold: int):
+        """
+        Select groups given a threshold.
+        """
+        return [t for t in self.groups if self.amed_rank[t] <= threshold and self.amean_rank[t] <= threshold and self.rmed_rank[t] <= threshold and self.rmean_rank[t] <= threshold]
 
     def get_standings(self):
+        """
+        Returns an ordered dictionary of all of the thresholded groups.
+        """
         buckets: Dict[float, List[str]] = {}
-        print(f"{len(self.groups)} groups")
+        print(f"{len(self.groups)} total groups")
 
         # Bucketize all groups
         for group in self.groups:
@@ -170,22 +179,18 @@ class CircuitView:
         # Convert to OrderedDict for output
         return collections.OrderedDict(sorted(iter(buckets.items())))
 
-    def save_standings(self, filename: str):
+    def save_standings(self, ordered_buckets: collections.OrderedDict, filename: str):
         """
         Bucketize and get standings. Save to filename (CSV)
         :return:
         """
-        ordered_buckets = self.get_standings()
-
         with open(filename, mode="w") as outfile:
             outfile.write("Threshold,Groups\n")
             for bucket in ordered_buckets:
                 outfile.write(
                     f"{bucket},{' '.join(ordered_buckets[bucket])}\n")
 
-    def save_standings_json(self, filename: str):
-        ordered_buckets = self.get_standings()
-
+    def save_standings_json(self, ordered_buckets: collections.OrderedDict, filename: str):
         with open(filename, mode="w") as outfile:
             json.dump([
                 {
@@ -218,16 +223,9 @@ class CircuitView:
         :param comp: name of comp
         :return: raw and normalized score dictionary, mapping group to list of scores for this comp
         """
-        with open(self.comp_to_file(comp), mode='r') as infile:
-            # Trick to calculate the number of judges ahead of time
-            col_reader, reader = itertools.tee(csv.reader(infile))
+        score_mgr = LocalScoreManager()
 
-            num_judges = len(next(col_reader)) - 1
-            del col_reader
-
-            # raw judges' scores per group
-            raw = {oScores[0]: [float(x) for x in oScores[1:]]
-                   for oScores in reader}
+        raw, num_judges = score_mgr.get_raw_scores(self.year, comp)
 
         # normalize for each group for this comp
         judge_avgs = [numpy.mean([raw[group][i] for group in raw])
@@ -245,6 +243,3 @@ class CircuitView:
 
         return {RAW: raw, NORMAL: normal, 'final_scores': final_scores, 'max': comp_max, 'min': comp_min,
                 'judge_avgs': judge_avgs}
-
-    def comp_to_file(self, comp: str) -> str:
-        return os.path.join(SCORES_DIR, self.year, f"{comp}.csv")
