@@ -1,5 +1,5 @@
 import log from "loglevel";
-import { median, min } from "mathjs";
+import { median, mean, min, max } from "mathjs";
 import {
   reduce,
   forEach,
@@ -12,12 +12,10 @@ import {
   map,
   range,
   mapValues,
-  mean,
   filter,
   get,
   size,
-  zipObject,
-  max
+  zipObject
 } from "lodash";
 
 import { DETAILS } from "./constants";
@@ -118,8 +116,10 @@ export class CircuitView {
   async process() {
     this.compDetails = zipObject(
       this.comps,
-      await Promise.all(map(this.comps, comp => this.handle_comp(comp)))
+      await Promise.all(map(this.comps, comp => this.handleComp(comp)))
     );
+
+    log.debug(this.compDetails);
 
     // build normals
     const [raw, normal] = build_totals(this.compDetails);
@@ -169,13 +169,17 @@ export class CircuitView {
         :param comp: name of comp
         :return: raw and normalized score dictionary, mapping group to list of scores for this comp
         */
-  async handle_comp(comp: string): Promise<Record<string, any>> {
+  async handleComp(comp: string): Promise<Record<string, any>> {
     const scoreManager = new GSheetsScoreManager();
 
     const [raw, numJudges] = await scoreManager.get_raw_scores(this.year, comp);
 
     // normalize for each group for this comp
-    const judgeAvgs = map(range(numJudges), i => mean(map(raw, scores => scores[i])));
+    const judgeAvgs = map(range(numJudges), i => {
+      const judgeScores = map(raw, scores => scores[i]);
+      const m = mean(judgeScores);
+      return m;
+    });
 
     const normal = mapValues(raw, scores => map(scores, (x, i) => (x * 100) / judgeAvgs[i]));
 
@@ -186,12 +190,12 @@ export class CircuitView {
     // TODO judge names
 
     return {
-      RAW: raw,
-      NORMAL: normal,
-      final_scores: finalScores,
+      raw,
+      normal,
+      finalScores,
       max: compMax,
       min: compMin,
-      judge_avgs: judgeAvgs
+      judgeAvgs
     };
   }
 
