@@ -4,6 +4,7 @@ import "./App.css";
 import log from "loglevel";
 import { CLIENT_ID, API_KEY, DISCOVERY_DOCS, SCOPES, getGapi } from "./google";
 import Standings from "./Standings";
+import { Grid } from "@material-ui/core";
 
 export default function App() {
   const [isSignedIn, setSignedIn] = useState(false);
@@ -55,7 +56,11 @@ export default function App() {
       {isSignedIn ? (
         <>
           <button onClick={handleSignOut}>Sign Out!</button>
-          <Standings />
+          <Grid container justify="center">
+            <Grid item xs={8} lg={5}>
+              <Standings />
+            </Grid>
+          </Grid>
         </>
       ) : (
         <button onClick={handleSignIn}> Sign In!</button>

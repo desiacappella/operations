@@ -84,16 +84,16 @@ function get_ranks(statsMap: Record<Group, Stat>): Record<Group, Rank> {
 export class CircuitView {
   year: string;
   comps: any;
-  compDetails?: Record<string, Record<string, any>>;
-  groups?: string[];
-  amed?: Record<string, number>;
-  amean?: Record<string, number>;
-  rmed?: Record<string, number>;
-  rmean?: Record<string, number>;
-  amedRank?: Record<string, number>;
-  ameanRank?: Record<string, number>;
-  rmedRank?: Record<string, number>;
-  rmeanRank?: Record<string, number>;
+  compDetails: Record<string, Record<string, any>> = {};
+  groups: string[] = [];
+  amed: Record<string, number> = {};
+  amean: Record<string, number> = {};
+  rmed: Record<string, number> = {};
+  rmean: Record<string, number> = {};
+  amedRank: Record<string, number> = {};
+  ameanRank: Record<string, number> = {};
+  rmedRank: Record<string, number> = {};
+  rmeanRank: Record<string, number> = {};
 
   /* Process competition scores to produce a CircuitView. `num` is the number of competitions to process. If num is -1, processes all competitions. `year` is the year to process. */
   constructor(num: number, year: string) {
@@ -185,8 +185,8 @@ export class CircuitView {
 
     const finalScores = mapValues(normal, scores => mean(scores));
     const finalScoresList = values(finalScores);
-    const compMax = max(finalScoresList);
-    const compMin = min(finalScoresList);
+    const compMax = finalScoresList.length ? max(finalScoresList) : 0;
+    const compMin = finalScoresList.length ? min(finalScoresList) : 0;
     // TODO judge names
 
     return {
@@ -202,7 +202,7 @@ export class CircuitView {
   /*
         Returns an ordered dictionary of all of the thresholded groups.
         */
-  get_standings() {
+  getStandings() {
     const buckets: Record<number, string[]> = {};
     log.debug(`${size(this.groups)} total groups`);
 
@@ -221,6 +221,26 @@ export class CircuitView {
 
     // Sort each bucket by group name
     return mapValues(buckets, vals => sortBy(vals));
+  }
+
+  getFullStandings() {
+    const buckets = this.getStandings();
+
+    return mapValues(buckets, groups =>
+      reduce(
+        groups,
+        (acc, group) => {
+          acc[group] = {
+            amed: this.amedRank[group],
+            amean: this.ameanRank[group],
+            rmed: this.rmedRank[group],
+            rmean: this.rmeanRank[group]
+          };
+          return acc;
+        },
+        {} as Record<string, Record<string, number>>
+      )
+    );
   }
 
   /* Select groups given a threshold. */
