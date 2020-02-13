@@ -3,6 +3,7 @@ import { map } from "lodash";
 import { Grid, Typography, Slider } from "@material-ui/core";
 
 import details from "./details.json";
+import log from "loglevel";
 
 const valuetext = (value: number) => details.order[value];
 
@@ -13,15 +14,15 @@ const App: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       const res = await fetch("http://localhost:5000");
-      const t: Array<Record<number, Array<string>>> = await res.json();
-      console.log(t);
+      const t: Record<number, string[]>[] = await res.json();
+      log.debug(t);
       const mapped = map(t, thresholds =>
         map(thresholds, (teams, threshold) => ({
           threshold,
           teams
         }))
       );
-      console.log(mapped);
+      log.debug(mapped);
       setAllViews(mapped);
     };
 
