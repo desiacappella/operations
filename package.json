@@ -46,6 +46,7 @@
     "@types/gapi": "^0.0.39",
     "@types/lodash": "^4.14.149",
     "@types/mathjs": "^6.0.4",
+    "gh-pages": "^2.2.0",
     "tslint": "^6.0.0",
     "tslint-etc": "^1.10.0"
   }
