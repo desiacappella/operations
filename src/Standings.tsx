@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Grid } from "@material-ui/core";
+import { Grid, Select, MenuItem } from "@material-ui/core";
 import log from "loglevel";
 import { CircuitView } from "./circuitView";
 import { map } from "lodash";
@@ -8,19 +8,37 @@ export default function Standings() {
   const [thresholds, setThresholds] = useState(
     {} as Record<string | number, Record<string, Record<string, number>>>
   );
+  const [year, setYear] = useState("19-20");
+  const [num, setNum] = useState(5);
+
+  const fetchStuff = async () => {
+    const cv = new CircuitView(num, year);
+    await cv.process();
+    setThresholds(cv.getFullStandings());
+  };
+
+  const handleChange = ({ target }: any) => {
+    switch (target.name) {
+      case "year":
+        setYear(target.value);
+        break;
+      case "num":
+        setNum(target.value);
+        break;
+    }
+  };
 
   useEffect(() => {
-    async function fetchStuff() {
-      const cv = new CircuitView(5, "19-20");
-      await cv.process();
-      setThresholds(cv.getFullStandings());
-    }
-
     fetchStuff();
   }, []);
 
   return (
     <div>
+      <Grid container>
+        <Select value={year} onChange={handleChange} name="year">
+          <MenuItem value="19-20">19-20</MenuItem>
+        </Select>
+      </Grid>
       <Grid container>
         <Grid item xs={1}>
           Threshold
