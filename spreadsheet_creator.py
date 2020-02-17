@@ -302,9 +302,9 @@ def calculator_sheet(judges: List[str], teams: List[str]):
                                 "width": 1,
                                 "style": "SOLID_THICK"
                             }
-                        },
+                        } if judge_idx == 0 else None,
                         HA: "CENTER"
-                    } if judge_idx == 0 else None
+                    }
                 }
             )
         return cells
@@ -659,7 +659,7 @@ def judge_sheet(judges, teams, judge_idx):
                 {
                     VAL: {"stringValue": SCALED[1]["name"]},
                     FORM: {
-                        HA: "CENTER", TF: {"bold": True}, "backgroundColor": SCALED[0]["color"]
+                        HA: "CENTER", TF: {"bold": True}, "backgroundColor": SCALED[1]["color"]
                     }
                 }
             ] + [
@@ -675,7 +675,7 @@ def judge_sheet(judges, teams, judge_idx):
                 {
                     VAL: {"stringValue": SCALED[2]["name"]},
                     FORM: {
-                        HA: "CENTER", TF: {"bold": True}, "backgroundColor": SCALED[0]["color"]
+                        HA: "CENTER", TF: {"bold": True}, "backgroundColor": SCALED[2]["color"]
                     }
                 }
             ] + [
