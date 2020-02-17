@@ -1,43 +1,47 @@
 import React, { useState, useEffect } from "react";
-import { Grid, Select, MenuItem } from "@material-ui/core";
-import log from "loglevel";
+import { Grid, Select, MenuItem, Typography } from "@material-ui/core";
 import { CircuitView } from "./circuitView";
-import { map } from "lodash";
+import { map, join, sortBy } from "lodash";
 
 export default function Standings() {
   const [thresholds, setThresholds] = useState(
     {} as Record<string | number, Record<string, Record<string, number>>>
   );
-  const [year, setYear] = useState("19-20");
-  const [num, setNum] = useState(5);
-
-  const fetchStuff = async () => {
-    const cv = new CircuitView(num, year);
-    await cv.process();
-    setThresholds(cv.getFullStandings());
-  };
+  const [cv, setCv] = useState(new CircuitView(5, "19-20"));
 
   const handleChange = ({ target }: any) => {
     switch (target.name) {
       case "year":
-        setYear(target.value);
+        setCv(new CircuitView(cv.num, target.value));
         break;
       case "num":
-        setNum(target.value);
+        setCv(new CircuitView(target.value, cv.year));
         break;
     }
   };
 
   useEffect(() => {
+    const fetchStuff = async () => {
+      await cv.process();
+      setThresholds(cv.getFullStandings());
+    };
+
     fetchStuff();
-  }, []);
+  }, [cv]);
 
   return (
     <div>
       <Grid container>
-        <Select value={year} onChange={handleChange} name="year">
-          <MenuItem value="19-20">19-20</MenuItem>
-        </Select>
+        <Grid item>
+          <Select value={cv.year} onChange={handleChange} name="year">
+            <MenuItem value="19-20">19-20</MenuItem>
+          </Select>
+        </Grid>
+        <Grid item>
+          <Typography>
+            {join(sortBy(cv.groups), ", ")}, ({cv.groups.length})
+          </Typography>
+        </Grid>
       </Grid>
       <Grid container>
         <Grid item xs={1}>
@@ -62,11 +66,11 @@ export default function Standings() {
         </Grid>
       </Grid>
       {map(thresholds, (groups, t) => (
-        <Grid container alignItems="center" key={t}>
+        <Grid container alignItems="center" key={t} style={{ border: "1px solid black" }}>
           <Grid item xs={1}>
             {t}
           </Grid>
-          <Grid item xs={11} style={{ border: "1px solid black" }}>
+          <Grid item xs={11}>
             {map(groups, (ranks, group) => (
               <Grid container item xs={12} key={group}>
                 <Grid item xs>

@@ -82,6 +82,7 @@ function get_ranks(statsMap: Record<Group, Stat>): Record<Group, Rank> {
 }
 
 export class CircuitView {
+  num: number;
   year: string;
   comps: any;
   compDetails: Record<string, Record<string, any>> = {};
@@ -97,6 +98,7 @@ export class CircuitView {
 
   /* Process competition scores to produce a CircuitView. `num` is the number of competitions to process. If num is -1, processes all competitions. `year` is the year to process. */
   constructor(num: number, year: string) {
+    this.num = num;
     this.year = year;
 
     // First, convert (num, year) to comps

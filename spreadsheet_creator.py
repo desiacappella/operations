@@ -792,6 +792,7 @@ def main():
         sys.stderr.write("Unable to get credentials")
         return 1
 
+    # TODO make this interactive
     judges = [f"Judge {x+1}" for x in range(3)]
     teams = [f"Team {x+1}" for x in range(9)]
     name = "Test Spreadsheet"
