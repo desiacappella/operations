@@ -10,6 +10,7 @@ export default function Results() {
   const [comp, setComp] = useState(5);
   const [details, setDetails] = useState({} as any);
 
+  // eslint-disable-next-line
   const handleChange = async ({}, newValue: number) => {
     setComp(newValue);
   };

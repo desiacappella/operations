@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Grid, Button, Typography } from "@material-ui/core";
+import { Grid, Typography } from "@material-ui/core";
 import { CircuitView, processCV, getFullStandings } from "./circuitView";
 import { NOW } from "./constants";
 import { map, join, sortBy, get, size } from "lodash";
@@ -33,7 +33,7 @@ export default function Standings() {
       </Grid>
       <Grid container>
         <Grid item xs={1}>
-          Threshold
+          Threshold)
         </Grid>
         <Grid container item xs={11}>
           <Grid item xs>
