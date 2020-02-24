@@ -1,4 +1,3 @@
-import log from "loglevel";
 import { median, mean, min, max } from "mathjs";
 import {
   reduce,
@@ -14,13 +13,48 @@ import {
   mapValues,
   filter,
   get,
-  size,
-  zipObject
+  size
 } from "lodash";
 
 import { DETAILS } from "./constants";
 import { GSheetsScoreManager } from "./scoreManager";
 import { ScoresDict, Group, Stat, Rank } from "./types";
+
+export class CircuitView {
+  year: Year;
+  comps: string[];
+  compDetails: Record<string, Record<string, any>> = {};
+  groups: string[] = [];
+  amed: Record<string, number> = {};
+  amean: Record<string, number> = {};
+  rmed: Record<string, number> = {};
+  rmean: Record<string, number> = {};
+  amedRank: Record<string, number> = {};
+  ameanRank: Record<string, number> = {};
+  rmedRank: Record<string, number> = {};
+  rmeanRank: Record<string, number> = {};
+
+  /**
+   * Process competition scores to produce a CircuitView. `num` is the number of competitions to
+   * process. If num is -1, processes all competitions. `year` is the year to process.
+   */
+  constructor(num: number, year: string) {
+    this.year = year;
+
+    // First, convert (num, year) to comps
+    const _comps: string[] = DETAILS[year].order;
+
+    if (num > _comps.length) {
+      throw new Error("Illegal argument: num");
+    }
+
+    if (num < 0) num = _comps.length;
+
+    this.comps = _comps.slice(0, num);
+  }
+}
+
+export type Year = string;
 
 /*
     Builds up all of the raw and normalized scores across the given competitions for all groups.
@@ -81,178 +115,150 @@ function get_ranks(statsMap: Record<Group, Stat>): Record<Group, Rank> {
   );
 }
 
-export class CircuitView {
-  num: number;
-  year: string;
-  comps: any;
-  compDetails: Record<string, Record<string, any>> = {};
-  groups: string[] = [];
-  amed: Record<string, number> = {};
-  amean: Record<string, number> = {};
-  rmed: Record<string, number> = {};
-  rmean: Record<string, number> = {};
-  amedRank: Record<string, number> = {};
-  ameanRank: Record<string, number> = {};
-  rmedRank: Record<string, number> = {};
-  rmeanRank: Record<string, number> = {};
+export const processCV = async (cv: CircuitView) => {
+  // FIXME For now, do sequentially because we need to cache
+  const details = {} as Record<string, Record<string, any>>;
+  for (const comp of cv.comps) {
+    details[comp] = await handleComp(cv.year, comp);
+  }
 
-  /* Process competition scores to produce a CircuitView. `num` is the number of competitions to process. If num is -1, processes all competitions. `year` is the year to process. */
-  constructor(num: number, year: string) {
-    this.num = num;
-    this.year = year;
+  cv.compDetails = details; /* zipObject(
+    cv.comps,
+    await Promise.all(map(cv.comps, comp => handleComp(cv.year, comp)))
+  );*/
 
-    // First, convert (num, year) to comps
-    const _comps: string[] = DETAILS[year].order;
+  // build normals
+  const [raw, normal] = build_totals(cv.compDetails);
+  cv.groups = keys(raw);
 
-    if (num > _comps.length) {
-      throw new Error("Illegal argument: num");
+  // evaluate numbers
+  const [amed, amean] = get_stats(raw);
+  const [rmed, rmean] = get_stats(normal);
+  cv.amed = amed;
+  cv.amean = amean;
+  cv.rmed = rmed;
+  cv.rmean = rmean;
+
+  // get ranks
+  cv.amedRank = get_ranks(cv.amed);
+  cv.ameanRank = get_ranks(cv.amean);
+  cv.rmedRank = get_ranks(cv.rmed);
+  cv.rmeanRank = get_ranks(cv.rmean);
+
+  // compute misc. stats
+  // cv.attended: Record<Group, Array<string>> = reduce(cv.groups, (acc, group) => {
+  //     const list = [comp for comp in cv.comps if group in cv.comp_details[comp][RAW]];
+  //     const list = filter(group in cv.comp_details[comp][RAW] ?
+  //     acc[group] = list
+  // }, {});
+
+  // {
+  //     group: [
+  //         ]
+  //     for group in cv.groups
+  // }
+  // cv.avg_groups_per_comp = numpy.mean(
+  //     [len(cv.comp_details[comp][RAW]) for comp in cv.comp_details])
+  // cv.avg_judges_per_comp = numpy.mean(
+  //     [len(cv.comp_details[comp]["judge_avgs"]) for comp in cv.comp_details])
+  // cv.avg_comps_per_group = numpy.mean(
+  //     [len(cv.attended[group]) for group in cv.groups])
+  // cv.best_score = {
+  //     "group": "Lel",
+  //     "comp": "Lol",
+  //     "score": 420.69
+  // }
+};
+
+/**
+ * Handles a single competition.
+ * :param year: year
+ * :param comp: name of comp
+ * :return: raw and normalized score dictionary, mapping group to list of scores for this comp
+ */
+export const handleComp = async (year: Year, comp: string): Promise<Record<string, any>> => {
+  const scoreManager = new GSheetsScoreManager();
+
+  const [raw, numJudges] = await scoreManager.get_raw_scores(year, comp);
+
+  // normalize for each group for this comp
+  const judgeAvgs = map(range(numJudges), i => {
+    const judgeScores = map(raw, scores => scores[i]);
+    const m = mean(judgeScores);
+    return m;
+  });
+
+  const normal = mapValues(raw, scores => map(scores, (x, i) => (x * 100) / judgeAvgs[i]));
+
+  const finalScores = mapValues(normal, scores => mean(scores));
+  const finalScoresList = values(finalScores);
+  const compMax = finalScoresList.length ? max(finalScoresList) : 0;
+  const compMin = finalScoresList.length ? min(finalScoresList) : 0;
+  // TODO judge names
+
+  return {
+    raw,
+    normal,
+    finalScores,
+    max: compMax,
+    min: compMin,
+    judgeAvgs
+  };
+};
+
+export const getStandings = (cv: CircuitView) => {
+  const buckets: Record<number, string[]> = {};
+
+  // Bucketize all groups
+  forEach(get(cv, "groups"), group => {
+    const bucket = max([
+      get(cv.amedRank, `[${group}]`, size(cv.groups)),
+      get(cv.ameanRank, `[${group}]`, size(cv.groups)),
+      get(cv.rmedRank, `[${group}]`, size(cv.groups)),
+      get(cv.rmeanRank, `[${group}]`, size(cv.groups))
+    ]);
+    if (bucket) {
+      buckets[bucket] = bucket in buckets ? concat(buckets[bucket], group) : [group];
     }
+  });
 
-    if (num < 0) num = _comps.length;
+  // Sort each bucket by group name
+  return mapValues(buckets, vals => sortBy(vals));
+};
 
-    this.comps = _comps.slice(0, num);
-
-    log.debug("comps:", this.comps);
-  }
-
-  async process() {
-    this.compDetails = zipObject(
-      this.comps,
-      await Promise.all(map(this.comps, comp => this.handleComp(comp)))
-    );
-
-    log.debug(this.compDetails);
-
-    // build normals
-    const [raw, normal] = build_totals(this.compDetails);
-    this.groups = keys(raw);
-
-    // evaluate numbers
-    const [amed, amean] = get_stats(raw);
-    const [rmed, rmean] = get_stats(normal);
-    this.amed = amed;
-    this.amean = amean;
-    this.rmed = rmed;
-    this.rmean = rmean;
-
-    // get ranks
-    this.amedRank = get_ranks(this.amed);
-    this.ameanRank = get_ranks(this.amean);
-    this.rmedRank = get_ranks(this.rmed);
-    this.rmeanRank = get_ranks(this.rmean);
-
-    // compute misc. stats
-    // this.attended: Record<Group, Array<string>> = reduce(this.groups, (acc, group) => {
-    //     const list = [comp for comp in this.comps if group in this.comp_details[comp][RAW]];
-    //     const list = filter(group in this.comp_details[comp][RAW] ?
-    //     acc[group] = list
-    // }, {});
-
-    // {
-    //     group: [
-    //         ]
-    //     for group in this.groups
-    // }
-    // this.avg_groups_per_comp = numpy.mean(
-    //     [len(this.comp_details[comp][RAW]) for comp in this.comp_details])
-    // this.avg_judges_per_comp = numpy.mean(
-    //     [len(this.comp_details[comp]["judge_avgs"]) for comp in this.comp_details])
-    // this.avg_comps_per_group = numpy.mean(
-    //     [len(this.attended[group]) for group in this.groups])
-    // this.best_score = {
-    //     "group": "Lel",
-    //     "comp": "Lol",
-    //     "score": 420.69
-    // }
-  }
-
-  /*
-        Handles a single competition.
-        :param comp: name of comp
-        :return: raw and normalized score dictionary, mapping group to list of scores for this comp
-        */
-  async handleComp(comp: string): Promise<Record<string, any>> {
-    const scoreManager = new GSheetsScoreManager();
-
-    const [raw, numJudges] = await scoreManager.get_raw_scores(this.year, comp);
-
-    // normalize for each group for this comp
-    const judgeAvgs = map(range(numJudges), i => {
-      const judgeScores = map(raw, scores => scores[i]);
-      const m = mean(judgeScores);
-      return m;
-    });
-
-    const normal = mapValues(raw, scores => map(scores, (x, i) => (x * 100) / judgeAvgs[i]));
-
-    const finalScores = mapValues(normal, scores => mean(scores));
-    const finalScoresList = values(finalScores);
-    const compMax = finalScoresList.length ? max(finalScoresList) : 0;
-    const compMin = finalScoresList.length ? min(finalScoresList) : 0;
-    // TODO judge names
-
-    return {
-      raw,
-      normal,
-      finalScores,
-      max: compMax,
-      min: compMin,
-      judgeAvgs
-    };
-  }
-
-  /*
+/*
         Returns an ordered dictionary of all of the thresholded groups.
         */
-  getStandings() {
-    const buckets: Record<number, string[]> = {};
-    log.debug(`${size(this.groups)} total groups`);
+export const getFullStandings = (
+  cv: CircuitView
+): Record<number, Record<string, Record<string, number>>> => {
+  const buckets = getStandings(cv);
 
-    // Bucketize all groups
-    forEach(this.groups, group => {
-      const bucket = max([
-        get(this.amedRank, `[${group}]`, size(this.groups)),
-        get(this.ameanRank, `[${group}]`, size(this.groups)),
-        get(this.rmedRank, `[${group}]`, size(this.groups)),
-        get(this.rmeanRank, `[${group}]`, size(this.groups))
-      ]);
-      if (bucket) {
-        buckets[bucket] = bucket in buckets ? concat(buckets[bucket], group) : [group];
-      }
-    });
+  return mapValues(buckets, groups =>
+    reduce(
+      groups,
+      (acc, group) => {
+        acc[group] = {
+          amed: cv.amedRank[group],
+          amean: cv.ameanRank[group],
+          rmed: cv.rmedRank[group],
+          rmean: cv.rmeanRank[group]
+        };
+        return acc;
+      },
+      {} as Record<string, Record<string, number>>
+    )
+  );
+};
 
-    // Sort each bucket by group name
-    return mapValues(buckets, vals => sortBy(vals));
-  }
-
-  getFullStandings() {
-    const buckets = this.getStandings();
-
-    return mapValues(buckets, groups =>
-      reduce(
-        groups,
-        (acc, group) => {
-          acc[group] = {
-            amed: this.amedRank[group],
-            amean: this.ameanRank[group],
-            rmed: this.rmedRank[group],
-            rmean: this.rmeanRank[group]
-          };
-          return acc;
-        },
-        {} as Record<string, Record<string, number>>
-      )
-    );
-  }
-
-  /* Select groups given a threshold. */
-  selectGroups = (threshold: number) =>
-    filter(
-      this.groups,
-      t =>
-        get(this.amedRank, `[${t}]`, size(this.groups)) <= threshold &&
-        get(this.ameanRank, `[${t}]`, size(this.groups)) <= threshold &&
-        get(this.rmedRank, `[${t}]`, size(this.groups)) <= threshold &&
-        get(this.rmeanRank, `[${t}]`, size(this.groups)) <= threshold
-    );
-}
+/* Select groups given a threshold. */
+export const selectGroups = (cv: CircuitView, threshold: number) => {
+  filter(
+    cv.groups,
+    t =>
+      get(cv.amedRank, `[${t}]`, size(cv.groups)) <= threshold &&
+      get(cv.ameanRank, `[${t}]`, size(cv.groups)) <= threshold &&
+      get(cv.rmedRank, `[${t}]`, size(cv.groups)) <= threshold &&
+      get(cv.rmeanRank, `[${t}]`, size(cv.groups)) <= threshold
+  );
+};

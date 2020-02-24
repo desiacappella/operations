@@ -1,10 +1,16 @@
 import React, { useEffect, useState } from "react";
-
+import { Button } from "@material-ui/core";
 import "./App.css";
+import { Link, BrowserRouter, Route, Switch } from "react-router-dom";
 import log from "loglevel";
 import { CLIENT_ID, API_KEY, DISCOVERY_DOCS, SCOPES, getGapi } from "./google";
 import Standings from "./Standings";
 import { Grid } from "@material-ui/core";
+
+import "typeface-roboto";
+import Results from "./Results";
+
+log.setLevel("debug");
 
 export default function App() {
   const [isSignedIn, setSignedIn] = useState(false);
@@ -46,25 +52,52 @@ export default function App() {
   };
 
   const handleSignOut = () => {
+    localStorage.clear();
     getGapi()
       .auth2.getAuthInstance()
       .signOut();
   };
 
   return (
-    <div className="App">
-      {isSignedIn ? (
-        <>
-          <button onClick={handleSignOut}>Sign Out!</button>
-          <Grid container justify="center">
-            <Grid item xs={8} lg={5}>
-              <Standings />
+    <BrowserRouter>
+      <div className="App">
+        {isSignedIn ? (
+          <>
+            <Grid container justify="center" spacing={1} alignItems="center">
+              <Grid item>
+                <Link to="/">Standings</Link>
+              </Grid>
+              <Grid item>
+                <Link to="/results">Comp Results</Link>
+              </Grid>
+              <Grid item>
+                <Button onClick={handleSignOut} variant="outlined">
+                  Sign Out!
+                </Button>
+              </Grid>
             </Grid>
-          </Grid>
-        </>
-      ) : (
-        <button onClick={handleSignIn}> Sign In!</button>
-      )}
-    </div>
+            <Grid container justify="center">
+              <Switch>
+                <Route path="/results">
+                  <Grid item xs={12} lg={8}>
+                    <Results />
+                  </Grid>
+                </Route>
+                <Route path="/">
+                  <Grid item xs={8} lg={5}>
+                    <Standings />
+                  </Grid>
+                </Route>
+              </Switch>
+            </Grid>
+          </>
+        ) : (
+          <Button onClick={handleSignIn} variant="outlined">
+            {" "}
+            Sign In!
+          </Button>
+        )}
+      </div>
+    </BrowserRouter>
   );
 }

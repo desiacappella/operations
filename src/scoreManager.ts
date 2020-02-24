@@ -1,18 +1,27 @@
 import { getGapi } from "./google";
 import { DETAILS } from "./constants";
-import { findIndex, reduce, set } from "lodash";
+import { findIndex, reduce, set, get } from "lodash";
 import { ScoresDict } from "./types";
 import log from "loglevel";
 
-// interface ScoreManager {
-//   get_raw_scores: (year: string, comp: string) => Promise<[ScoresDict, number]>;
-// }
-
 export class GSheetsScoreManager /*implements ScoreManager*/ {
   async get_raw_scores(year: string, comp: string): Promise<[ScoresDict, number]> {
+    const allDetails = JSON.parse(localStorage.getItem("compDetails") || "{}");
+
+    const localData = get(allDetails, `${year}.${comp}`);
+    if (localData) {
+      return localData;
+    }
+
+    log.info("Had to fetch from Google sheets");
+
     const spreadsheetId = DETAILS[year].sheetIds[comp];
 
     try {
+      if (!spreadsheetId) {
+        throw new Error("no spreadsheet");
+      }
+
       const response = await getGapi().client.sheets.spreadsheets.values.get({
         spreadsheetId,
         range: "Calculator"
@@ -31,6 +40,9 @@ export class GSheetsScoreManager /*implements ScoreManager*/ {
           set(acc, row[0], row.slice(row.length - 3 - 2 * judgeCount, row.length - 3 - judgeCount)),
         {}
       );
+
+      set(allDetails, `${year}.${comp}`, [raw, judgeCount]);
+      localStorage.setItem("compDetails", JSON.stringify(allDetails));
 
       return [raw, judgeCount];
     } catch (err) {

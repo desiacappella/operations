@@ -1,45 +1,33 @@
 import React, { useState, useEffect } from "react";
-import { Grid, Select, MenuItem, Typography } from "@material-ui/core";
-import { CircuitView } from "./circuitView";
-import { map, join, sortBy } from "lodash";
+import { Grid, Button, Typography } from "@material-ui/core";
+import { CircuitView, processCV, getFullStandings } from "./circuitView";
+import { NOW } from "./constants";
+import { map, join, sortBy, get, size } from "lodash";
 
 export default function Standings() {
-  const [thresholds, setThresholds] = useState(
-    {} as Record<string | number, Record<string, Record<string, number>>>
-  );
-  const [cv, setCv] = useState(new CircuitView(5, "19-20"));
-
-  const handleChange = ({ target }: any) => {
-    switch (target.name) {
-      case "year":
-        setCv(new CircuitView(cv.num, target.value));
-        break;
-      case "num":
-        setCv(new CircuitView(target.value, cv.year));
-        break;
-    }
-  };
+  const [cv, setCv] = useState({} as CircuitView);
 
   useEffect(() => {
-    const fetchStuff = async () => {
-      await cv.process();
-      setThresholds(cv.getFullStandings());
+    const loader = async () => {
+      const temp = new CircuitView(6, NOW);
+      await processCV(temp);
+      setCv(temp);
     };
 
-    fetchStuff();
-  }, [cv]);
+    loader();
+  }, []);
 
   return (
     <div>
-      <Grid container>
+      <Grid container justify="center">
         <Grid item>
-          <Select value={cv.year} onChange={handleChange} name="year">
-            <MenuItem value="19-20">19-20</MenuItem>
-          </Select>
+          <Typography>
+            {join(sortBy(get(cv, "groups")), ", ")}: <b>{size(get(cv, "groups"))} groups</b>
+          </Typography>
         </Grid>
         <Grid item>
           <Typography>
-            {join(sortBy(cv.groups), ", ")}, ({cv.groups.length})
+            {join(get(cv, "comps"), ", ")}: <b>{size(get(cv, "comps"))} comps</b>
           </Typography>
         </Grid>
       </Grid>
@@ -65,7 +53,7 @@ export default function Standings() {
           </Grid>
         </Grid>
       </Grid>
-      {map(thresholds, (groups, t) => (
+      {map(getFullStandings(cv), (groups, t) => (
         <Grid container alignItems="center" key={t} style={{ border: "1px solid black" }}>
           <Grid item xs={1}>
             {t}
