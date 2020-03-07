@@ -33,7 +33,7 @@ export default function Standings() {
       </Grid>
       <Grid container>
         <Grid item xs={1}>
-          Threshold)
+          Threshold
         </Grid>
         <Grid container item xs={11}>
           <Grid item xs>
