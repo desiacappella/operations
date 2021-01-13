@@ -10,11 +10,17 @@ import (
 	"strconv"
 )
 
-var fileLocation = path.Join("G:", "Shared drives", "ASA", "Operations", "2020-21", "Match System")
+// Windows
+// var gDriveRoot = "G:"
+// macOS
+var gDriveRoot = path.Join("/Volumes", "GoogleDrive")
+
+var fileLocation = path.Join(gDriveRoot, "Shared drives", "ASA", "Operations", "2020-21", "Match System")
 
 const (
-	teamFile = "TEAM-RANK-LIST.csv"
-	compFile = "COMPETITION-RANK-LIST.csv"
+	teamFile        = "TEAM-RANK-LIST.csv"
+	compFile        = "COMPETITION-RANK-LIST.csv"
+	teamMatchesFile = "MATCHES.csv"
 
 	series1 = 4
 	series2 = 2
@@ -43,11 +49,12 @@ func (c Competition) String() string {
 }
 
 type Team struct {
-	Name        string   `json:"name"`
-	NumberMatch int      `json:"numberMatch"`
-	Choices     []string `json:"choices"`
-	Match1      string   `json:"match1"`
-	Match2      string   `json:"match2"`
+	Name           string   `json:"name"`
+	NumberMatch    int      `json:"numberMatch"`
+	Choices        []string `json:"choices"`
+	ChoicesInvalid []bool   `json:"choicesInvalid"`
+	Match1         string   `json:"match1"`
+	Match2         string   `json:"match2"`
 }
 
 func parseTeams() []*Team {
@@ -80,9 +87,10 @@ func parseTeams() []*Team {
 		}
 
 		teams = append(teams, &Team{
-			Name:        record[0],
-			NumberMatch: n,
-			Choices:     choices,
+			Name:           record[0],
+			NumberMatch:    n,
+			Choices:        choices,
+			ChoicesInvalid: make([]bool, nComps),
 		})
 	}
 
@@ -124,13 +132,11 @@ func parseComps() []*Competition {
 
 // Filter out a particular choice from the team's choices
 func removeChoice(team *Team, choiceToRemove string) {
-	var newChoices []string
-	for _, choice := range team.Choices {
-		if choice != choiceToRemove {
-			newChoices = append(newChoices, choice)
+	for idx, choice := range team.Choices {
+		if choice == choiceToRemove {
+			team.ChoicesInvalid[idx] = true
 		}
 	}
-	team.Choices = newChoices
 }
 
 // Remove the worst team from this competition and return it.
@@ -169,7 +175,6 @@ func match(teams []*Team, comps []*Competition, matchNum int) {
 		max = series2Max
 	}
 
-	// Unmatched teams, teams without a match #1
 	unmatchedTeams := teams
 
 	// Just a way to prevent infinite loops
@@ -179,7 +184,12 @@ func match(teams []*Team, comps []*Competition, matchNum int) {
 		team := unmatchedTeams[0]
 
 		// Alright, who does this team like the most?
-		for _, choice := range team.Choices {
+		for choiceIdx, choice := range team.Choices {
+			// Only try this choice if it's still valid
+			if team.ChoicesInvalid[choiceIdx] {
+				continue
+			}
+
 			// Find this competition
 			var comp *Competition
 			for _, c := range comps {
@@ -245,7 +255,7 @@ func option1(teams []*Team, comps []*Competition) {
 	series1Comps := comps[:series1]
 	match(teams, series1Comps, 1)
 	fmt.Printf("%v\t%v\t%v\t%v\n", series1Comps[0], series1Comps[1], series1Comps[2], series1Comps[3])
-	fmt.Printf("Done!\n")
+	fmt.Println("Done!")
 
 	// Second series second.
 	var series2Teams []*Team
@@ -258,7 +268,7 @@ func option1(teams []*Team, comps []*Competition) {
 	series2Comps := comps[series1:]
 	match(series2Teams, series2Comps, 2)
 	fmt.Printf("%v\t%v\n", series2Comps[0], series2Comps[1])
-	fmt.Printf("Done!\n")
+	fmt.Println("Done!")
 }
 
 // Option 2
@@ -276,17 +286,21 @@ func option1(teams []*Team, comps []*Competition) {
 //
 // 21 x 2 + 11 = 53, 53/6 = 5 9's and an 8
 
-func main() {
-	matchedTeams := parseTeams()
-	option1(matchedTeams, parseComps())
-	teams := parseTeams()
+func writeTeamMatches(teams []*Team) {
+	outFile, err := os.OpenFile(path.Join(fileLocation, teamMatchesFile), os.O_WRONLY|os.O_CREATE, os.ModePerm)
+	if err != nil {
+		panic(err)
+	}
+	defer outFile.Close()
 
-	choiceSum := 0.0
-	for i, t := range matchedTeams {
-		originalTeam := teams[i]
+	w := csv.NewWriter(outFile)
 
+	var records [][]string
+
+	records = append(records, []string{"Team", "First Match", "Match Preference", "Second Match", "Match Preference"})
+	for _, t := range teams {
 		var match1Idx, match2Idx int
-		for idx, choice := range originalTeam.Choices {
+		for idx, choice := range t.Choices {
 			if choice == t.Match1 {
 				match1Idx = idx
 			} else if choice == t.Match2 {
@@ -294,9 +308,22 @@ func main() {
 			}
 		}
 
-		fmt.Printf("%-25v matched to %-15v (choice #%d) and %-15v (choice #%d)\n", t.Name, t.Match1, match1Idx+1, t.Match2, match2Idx+1)
-		choiceSum += float64(match1Idx + 1)
+		record := []string{
+			t.Name, t.Match1, strconv.Itoa(match1Idx + 1),
+		}
+		if t.NumberMatch >= 2 {
+			record = append(record, t.Match2, strconv.Itoa(match2Idx+1))
+		}
+
+		records = append(records, record)
 	}
 
-	fmt.Println("Average first choice", choiceSum/nTeams)
+	w.WriteAll(records)
+}
+
+func main() {
+	teams := parseTeams()
+	option1(teams, parseComps())
+
+	writeTeamMatches(teams)
 }
