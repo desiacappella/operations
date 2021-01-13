@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math"
 	"os"
 	"path"
 	"strconv"
@@ -21,6 +22,7 @@ const (
 	teamFile        = "TEAM-RANK-LIST.csv"
 	compFile        = "COMPETITION-RANK-LIST.csv"
 	teamMatchesFile = "MATCHES.csv"
+	compMatchesFile = "COMP-MATCHES.csv"
 
 	series1 = 4
 	series2 = 2
@@ -321,9 +323,47 @@ func writeTeamMatches(teams []*Team) {
 	w.WriteAll(records)
 }
 
+func writeCompMatches(comps []*Competition) {
+	outFile, err := os.OpenFile(path.Join(fileLocation, compMatchesFile), os.O_WRONLY|os.O_CREATE, os.ModePerm)
+	if err != nil {
+		panic(err)
+	}
+	defer outFile.Close()
+
+	w := csv.NewWriter(outFile)
+
+	var records [][]string
+
+	headers := make([]string, 2*int(math.Max(series1Max, series2Max)+2))
+	headers[0] = "Competition"
+	for i := 1; i < len(headers)/2; i++ {
+		headers[2*i-1] = fmt.Sprintf("Match #%d", i)
+		headers[2*i] = fmt.Sprintf("Match Preference")
+	}
+	records = append(records, headers)
+
+	for _, c := range comps {
+		record := []string{c.Name}
+		for _, match := range c.Matches {
+			for idx, choice := range c.Choices {
+				if choice == match.Team.Name {
+					record = append(record, match.Team.Name, strconv.Itoa(idx+1))
+					break
+				}
+			}
+		}
+
+		records = append(records, record)
+	}
+
+	w.WriteAll(records)
+}
+
 func main() {
 	teams := parseTeams()
-	option1(teams, parseComps())
+	comps := parseComps()
+	option1(teams, comps)
 
 	writeTeamMatches(teams)
+	writeCompMatches(comps)
 }
