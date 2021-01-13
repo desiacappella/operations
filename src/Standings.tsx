@@ -9,7 +9,7 @@ export default function Standings() {
 
   useEffect(() => {
     const loader = async () => {
-      const temp = new CircuitView(6, NOW);
+      const temp = new CircuitView(7, NOW);
       await processCV(temp);
       setCv(temp);
     };

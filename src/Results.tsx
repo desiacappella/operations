@@ -7,7 +7,7 @@ import { GSheetsScoreManager } from "./scoreManager";
 const sm = new GSheetsScoreManager();
 
 export default function Results() {
-  const [comp, setComp] = useState(5);
+  const [comp, setComp] = useState(7);
   const [details, setDetails] = useState({} as any);
 
   // eslint-disable-next-line

@@ -18,7 +18,8 @@ export const DETAILS: Record<string, Record<string, any>> = {
       sangeet: "15ok6-LsCmh8qWpZAA_Jw8fHspOITdFYRHfOlpuF9Ous",
       sapna: "11fmeZOdIDqEE3CxT_FeJO4xJV95JGuSi8VO5tvrmiUU",
       sahana: "1xeDesKJ_J9rshPYjGUuxPNSHxbF6cVIOGDgnhm0vJqw",
-      gathe: "1RAqltt5vl4uk0gq3RCe4fNWu0taGokv2UP9vjWXO8JY"
+      gathe: "1RAqltt5vl4uk0gq3RCe4fNWu0taGokv2UP9vjWXO8JY",
+      awaazein: "1KYCn0RWMxbWabw4AuZzzsIyKZyCRnadvqcZVi9t7oDM"
     }
   }
 };

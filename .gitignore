@@ -4,6 +4,7 @@ credentials.json
 
 # venv
 env
+winenv
 
 # python
 __pycache__
