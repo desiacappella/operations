@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Grid, Typography } from "@material-ui/core";
 import { CircuitView, processCV, getFullStandings } from "./circuitView";
-import { NOW } from "./constants";
+import { NOW, NUM_COMPS } from "./constants";
 import { map, join, sortBy, get, size } from "lodash";
 
 export default function Standings() {
@@ -9,7 +9,7 @@ export default function Standings() {
 
   useEffect(() => {
     const loader = async () => {
-      const temp = new CircuitView(7, NOW);
+      const temp = new CircuitView(NUM_COMPS, NOW);
       await processCV(temp);
       setCv(temp);
     };

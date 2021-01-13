@@ -7,7 +7,7 @@ import { GSheetsScoreManager } from "./scoreManager";
 const sm = new GSheetsScoreManager();
 
 export default function Results() {
-  const [comp, setComp] = useState(7);
+  const [comp, setComp] = useState(0);
   const [details, setDetails] = useState({} as any);
 
   // eslint-disable-next-line
@@ -26,7 +26,7 @@ export default function Results() {
   return (
     <div>
       <Tabs value={comp} onChange={handleChange}>
-        {map(DETAILS[NOW].order, c => (
+        {map(DETAILS[NOW].order, (c) => (
           <Tab key={c} label={c} />
         ))}
       </Tabs>
