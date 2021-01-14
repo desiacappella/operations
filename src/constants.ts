@@ -13,14 +13,14 @@ export const DETAILS: Record<string, Record<string, any>> = {
       awaazein: "Awaazein",
     },
     sheetIds: {
-      jeena: "1B1qh4kKSeAFTV1r3MO4Y5jikyYFGHOe7-c46ha3Y-qc",
       anahat: "1iFCNADUpzFyqp5UjHsFdSJkSp5C5xU7C0YI3Asf_Q0k",
-      sangeet: "15CjKd5xkDyMCWXZhZ_A4FVeLjESSvJh118ky3XiFw1c",
-      mehfil: "1lgKM6LhIxn13e6wAGRW7tNfIobkGEeUUnTvwqV-ZApw",
+      awaazein: "1pLN6SKR444CdhzntJjDXnPMlqXtxr3dlTV5lnYWOFXI",
+      gathe: "1cg6XptCMQsWfmu7RnncfWP1E5b_FSyFOrDehbwlFUFY",
+      jeena: "1B1qh4kKSeAFTV1r3MO4Y5jikyYFGHOe7-c46ha3Y-qc",
+      mehfil: "1k7F_gBNM1OfDta5_gT_cHovDmt32jbXw--YMoTk1yc4",
       sahana: "1eNCN3pYH7M-OoH9vkHca7PnJoyXqrMjZ74qrZa3hImY",
-      gathe: "1y4EwVELIdhoutuTVLm9-oPXL5pRR2JskoKbpb4yaht8",
-      awaazein: "1sFbSqrzJLpy6xYo30_xlUwDkN7peFBotwB6d-zq_sjY",
-    }
+      sangeet: "15CjKd5xkDyMCWXZhZ_A4FVeLjESSvJh118ky3XiFw1c",
+    },
   },
   "19-20": {
     order: ["jeena", "anahat", "sahana", "sangeet", "sapna", "gathe", "awaazein"],
