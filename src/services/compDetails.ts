@@ -1,5 +1,3 @@
-export const NOW = "19-20";
-
 export const DETAILS: Record<string, Record<string, any>> = {
   "18-19": {
     order: ["jeena", "anahat", "sangeet", "mehfil", "sahana", "gathe", "awaazein"],
@@ -18,8 +16,8 @@ export const DETAILS: Record<string, Record<string, any>> = {
       gathe: "1cg6XptCMQsWfmu7RnncfWP1E5b_FSyFOrDehbwlFUFY",
       jeena: "1B1qh4kKSeAFTV1r3MO4Y5jikyYFGHOe7-c46ha3Y-qc",
       mehfil: "1k7F_gBNM1OfDta5_gT_cHovDmt32jbXw--YMoTk1yc4",
-      sahana: "1eNCN3pYH7M-OoH9vkHca7PnJoyXqrMjZ74qrZa3hImY",
-      sangeet: "15CjKd5xkDyMCWXZhZ_A4FVeLjESSvJh118ky3XiFw1c",
+      sahana: "1m9l2EQS3h75dlXz7A8E2JKc5GMXJOHlBS3gPlrgI3b4",
+      sangeet: "1pYyUIt2RvZ5AOZwwzIvZKd-KTuUE9uPOpT2BpReqkgo",
     },
   },
   "19-20": {

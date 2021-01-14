@@ -13,12 +13,12 @@ import {
   mapValues,
   filter,
   get,
-  size
+  size,
 } from "lodash";
 
-import { DETAILS } from "./constants";
+import { DETAILS } from "./compDetails";
 import { GSheetsScoreManager } from "./scoreManager";
-import { ScoresDict, Group, Stat, Rank } from "./types";
+import { ScoresDict, Group, Stat, Rank } from "../types";
 
 export class CircuitView {
   year: Year;
@@ -67,7 +67,7 @@ function build_totals(
   const allRaw: ScoresDict = {};
   const allNormal: ScoresDict = {};
 
-  forEach(allScores, val => {
+  forEach(allScores, (val) => {
     const raw = val.raw;
     const normal = val.normal;
 
@@ -102,7 +102,7 @@ function get_stats(scores?: ScoresDict) {
 // Map of group -> value
 function get_ranks(statsMap: Record<Group, Stat>): Record<Group, Rank> {
   const pairs = toPairs(statsMap);
-  const sortedByValue = reverse(sortBy(values(pairs), [p => p[1]]));
+  const sortedByValue = reverse(sortBy(values(pairs), [(p) => p[1]]));
 
   // start with 1
   return reduce(
@@ -182,15 +182,15 @@ export const handleComp = async (year: Year, comp: string): Promise<Record<strin
   const [raw, numJudges] = await scoreManager.get_raw_scores(year, comp);
 
   // normalize for each group for this comp
-  const judgeAvgs = map(range(numJudges), i => {
-    const judgeScores = map(raw, scores => scores[i]);
+  const judgeAvgs = map(range(numJudges), (i) => {
+    const judgeScores = map(raw, (scores) => scores[i]);
     const m = mean(judgeScores);
     return m;
   });
 
-  const normal = mapValues(raw, scores => map(scores, (x, i) => (x * 100) / judgeAvgs[i]));
+  const normal = mapValues(raw, (scores) => map(scores, (x, i) => (x * 100) / judgeAvgs[i]));
 
-  const finalScores = mapValues(normal, scores => mean(scores));
+  const finalScores = mapValues(normal, (scores) => mean(scores));
   const finalScoresList = values(finalScores);
   const compMax = finalScoresList.length ? max(finalScoresList) : 0;
   const compMin = finalScoresList.length ? min(finalScoresList) : 0;
@@ -202,7 +202,7 @@ export const handleComp = async (year: Year, comp: string): Promise<Record<strin
     finalScores,
     max: compMax,
     min: compMin,
-    judgeAvgs
+    judgeAvgs,
   };
 };
 
@@ -210,12 +210,12 @@ export const getStandings = (cv: CircuitView) => {
   const buckets: Record<number, string[]> = {};
 
   // Bucketize all groups
-  forEach(get(cv, "groups"), group => {
+  forEach(get(cv, "groups"), (group) => {
     const bucket = max([
       get(cv.amedRank, `[${group}]`, size(cv.groups)),
       get(cv.ameanRank, `[${group}]`, size(cv.groups)),
       get(cv.rmedRank, `[${group}]`, size(cv.groups)),
-      get(cv.rmeanRank, `[${group}]`, size(cv.groups))
+      get(cv.rmeanRank, `[${group}]`, size(cv.groups)),
     ]);
     if (bucket) {
       buckets[bucket] = bucket in buckets ? concat(buckets[bucket], group) : [group];
@@ -223,7 +223,7 @@ export const getStandings = (cv: CircuitView) => {
   });
 
   // Sort each bucket by group name
-  return mapValues(buckets, vals => sortBy(vals));
+  return mapValues(buckets, (vals) => sortBy(vals));
 };
 
 /*
@@ -234,7 +234,7 @@ export const getFullStandings = (
 ): Record<number, Record<string, Record<string, number>>> => {
   const buckets = getStandings(cv);
 
-  return mapValues(buckets, groups =>
+  return mapValues(buckets, (groups) =>
     reduce(
       groups,
       (acc, group) => {
@@ -242,7 +242,7 @@ export const getFullStandings = (
           amed: cv.amedRank[group],
           amean: cv.ameanRank[group],
           rmed: cv.rmedRank[group],
-          rmean: cv.rmeanRank[group]
+          rmean: cv.rmeanRank[group],
         };
         return acc;
       },
@@ -255,7 +255,7 @@ export const getFullStandings = (
 export const selectGroups = (cv: CircuitView, threshold: number) => {
   filter(
     cv.groups,
-    t =>
+    (t) =>
       get(cv.amedRank, `[${t}]`, size(cv.groups)) <= threshold &&
       get(cv.ameanRank, `[${t}]`, size(cv.groups)) <= threshold &&
       get(cv.rmedRank, `[${t}]`, size(cv.groups)) <= threshold &&

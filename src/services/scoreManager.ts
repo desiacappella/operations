@@ -1,16 +1,19 @@
 import { getGapi } from "./google";
-import { DETAILS } from "./constants";
+import { DETAILS } from "./compDetails";
 import { findIndex, reduce, set, get, findLastIndex } from "lodash";
-import { ScoresDict } from "./types";
+import { ScoresDict } from "../types";
 import log from "loglevel";
 
-export class GSheetsScoreManager /*implements ScoreManager*/ {
-  async get_raw_scores(year: string, comp: string): Promise<[ScoresDict, number]> {
-    const allDetails = JSON.parse(localStorage.getItem("compDetails") || "{}");
+const KEY_PREFIX = "compDetails";
 
-    const localData = get(allDetails, `${year}.${comp}`);
+export class GSheetsScoreManager /*implements ScoreManager*/ {
+  // This stores raw scores from each competition in a dictionary with the key being the year
+  async get_raw_scores(year: string, comp: string): Promise<[ScoresDict, number]> {
+    const yearDetails = JSON.parse(localStorage.getItem(`${KEY_PREFIX}-${year}`) || "{}");
+
+    const localData = get(yearDetails, comp);
     if (localData) {
-      // return localData;
+      return localData;
     }
 
     log.info("Had to fetch from Google sheets", year, comp);
@@ -46,8 +49,8 @@ export class GSheetsScoreManager /*implements ScoreManager*/ {
         {}
       );
 
-      set(allDetails, `${year}.${comp}`, [raw, judgeCount]);
-      localStorage.setItem("compDetails", JSON.stringify(allDetails));
+      set(yearDetails, comp, [raw, judgeCount]);
+      localStorage.setItem(`${KEY_PREFIX}-${year}`, JSON.stringify(yearDetails));
 
       return [raw, judgeCount];
     } catch (err) {

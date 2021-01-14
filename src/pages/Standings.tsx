@@ -1,21 +1,21 @@
 import React, { useState, useEffect } from "react";
 import { Grid, Typography } from "@material-ui/core";
-import { CircuitView, processCV, getFullStandings } from "./circuitView";
-import { NOW, NUM_COMPS } from "./constants";
+import { CircuitView, processCV, getFullStandings } from "../services/circuitView";
+import { NUM_COMPS } from "../services/compDetails";
 import { map, join, sortBy, get, size } from "lodash";
 
-export default function Standings() {
+export default function Standings({ year }: { year: string }) {
   const [cv, setCv] = useState({} as CircuitView);
 
   useEffect(() => {
     const loader = async () => {
-      const temp = new CircuitView(NUM_COMPS, NOW);
+      const temp = new CircuitView(NUM_COMPS, year);
       await processCV(temp);
       setCv(temp);
     };
 
     loader();
-  }, []);
+  }, [year]);
 
   return (
     <div>
@@ -33,48 +33,48 @@ export default function Standings() {
       </Grid>
       <Grid container>
         <Grid item xs={1}>
-          Threshold
+          <Typography>Threshold</Typography>
         </Grid>
         <Grid container item xs={11}>
           <Grid item xs>
-            Team
+            <Typography>Team</Typography>
           </Grid>
           <Grid item xs>
-            Abs Median
+            <Typography>Abs Median</Typography>
           </Grid>
           <Grid item xs>
-            Abs Mean
+            <Typography>Abs Mean</Typography>
           </Grid>
           <Grid item xs>
-            Rel Median
+            <Typography>Rel Median</Typography>
           </Grid>
           <Grid item xs>
-            Rel Mean
+            <Typography>Rel Mean</Typography>
           </Grid>
         </Grid>
       </Grid>
       {map(getFullStandings(cv), (groups, t) => (
         <Grid container alignItems="center" key={t} style={{ border: "1px solid black" }}>
           <Grid item xs={1}>
-            {t}
+            <Typography>{t}</Typography>
           </Grid>
           <Grid item xs={11}>
             {map(groups, (ranks, group) => (
               <Grid container item xs={12} key={group}>
                 <Grid item xs>
-                  {group}
+                  <Typography>{group}</Typography>
                 </Grid>
                 <Grid item xs>
-                  {ranks.amed}
+                  <Typography>{ranks.amed}</Typography>
                 </Grid>
                 <Grid item xs>
-                  {ranks.amean}
+                  <Typography>{ranks.amean}</Typography>
                 </Grid>
                 <Grid item xs>
-                  {ranks.rmed}
+                  <Typography>{ranks.rmed}</Typography>
                 </Grid>
                 <Grid item xs>
-                  {ranks.rmean}
+                  <Typography>{ranks.rmean}</Typography>
                 </Grid>
               </Grid>
             ))}
