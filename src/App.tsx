@@ -14,7 +14,7 @@ log.setLevel("debug");
 
 export default function App() {
   const [isSignedIn, setSignedIn] = useState(false);
-  const [year, setYear] = useState("18-19");
+  const [year, setYear] = useState("19-20");
 
   useEffect(() => {
     getGapi().load("client:auth2", () => {
@@ -67,12 +67,17 @@ export default function App() {
               </Grid>
               <Grid item>
                 <Link to="/">
-                  <Typography>Standings</Typography>
+                  <Typography>Home/Standings</Typography>
                 </Link>
               </Grid>
               <Grid item>
                 <Link to="/results">
                   <Typography>Comp Results</Typography>
+                </Link>
+              </Grid>
+              <Grid item>
+                <Link to="/report">
+                  <Typography>Team Reports</Typography>
                 </Link>
               </Grid>
               <Grid item>

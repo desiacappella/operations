@@ -12,13 +12,13 @@ import {
   TextField,
   Typography,
 } from "@material-ui/core";
-import { last, map, range, slice, sortBy, values } from "lodash";
+import { find, last, map, range, round, size, slice, sortBy, values } from "lodash";
 import React, { useEffect, useState } from "react";
 import logo from "../images/logo.png";
 import { CircuitView } from "../services/circuitView";
 import { DETAILS } from "../services/compDetails";
 
-function Report({ group, full }: { group: string; full: CircuitView }) {
+function Report({ year, group, full }: { year: string; group: string; full: CircuitView }) {
   const ranks = full.getGroupRanks(group);
   const stats = full.getGroupStats(group);
 
@@ -50,70 +50,75 @@ function Report({ group, full }: { group: string; full: CircuitView }) {
             </TableRow>
             <TableRow>
               <TableCell variant="head">Score</TableCell>
-              {map(stats, (s) => (
-                <TableCell>{s}</TableCell>
-              ))}
+              <TableCell>{round(stats.amed, 2)}</TableCell>
+              <TableCell>{round(stats.amean, 2)}</TableCell>
+              <TableCell>{round(stats.rmed, 2)}</TableCell>
+              <TableCell>{round(stats.rmean, 2)}</TableCell>
             </TableRow>
           </TableBody>
         </Table>
       </TableContainer>
       <Typography variant="h2">Competitions</Typography>
       <Grid container spacing={2} justify="center">
-        <Grid item xs={9}>
-          <Card>
-            <Typography variant="h5">Anahat</Typography>
-            <Grid container spacing={1} justify="center" alignItems="center">
-              <Grid item>
-                <Typography>Normalized Scores</Typography>
-              </Grid>
-              <Grid item>
-                <Typography>Max</Typography>
-                <Typography>100</Typography>
-              </Grid>
-              <Grid item>
-                <Typography>Min</Typography>
-                <Typography>80</Typography>
-              </Grid>
+        {map(full.attended[group], (comp) => {
+          const det = full.compDetails[comp];
+
+          return (
+            <Grid item xs={9}>
+              <Card>
+                <Typography variant="h5">
+                  {find(DETAILS[year].names, (_n, k) => k === comp)}
+                </Typography>
+                <Grid container spacing={1} justify="center" alignItems="center">
+                  <Grid item>
+                    <Typography>Normalized Scores</Typography>
+                  </Grid>
+                  <Grid item>
+                    <Typography>Max</Typography>
+                    <Typography>{round(det.max, 2)}</Typography>
+                  </Grid>
+                  <Grid item>
+                    <Typography>Min</Typography>
+                    <Typography>{round(det.min, 2)}</Typography>
+                  </Grid>
+                </Grid>
+                <Divider variant="middle" />
+                <TableContainer>
+                  <Table>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell />
+                        {map(det.judgeAvgs, (_a, i) => (
+                          <TableCell>{i + 1}</TableCell>
+                        ))}
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      <TableRow>
+                        <TableCell variant="head">Judge raw avg</TableCell>
+                        {map(det.judgeAvgs, (a) => (
+                          <TableCell>{round(a, 2)}</TableCell>
+                        ))}
+                      </TableRow>
+                      <TableRow>
+                        <TableCell variant="head">Your raw</TableCell>
+                        {map(det.raw[group], (score) => (
+                          <TableCell>{round(score, 2)}</TableCell>
+                        ))}
+                      </TableRow>
+                      <TableRow>
+                        <TableCell variant="head">Your normalized</TableCell>
+                        {map(det.normal[group], (score) => (
+                          <TableCell>{round(score, 2)}</TableCell>
+                        ))}
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Card>
             </Grid>
-            <Divider variant="middle" />
-            <TableContainer>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell />
-                    <TableCell>1</TableCell>
-                    <TableCell>2</TableCell>
-                    <TableCell>3</TableCell>
-                    <TableCell>4</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  <TableRow>
-                    <TableCell variant="head">Judge raw avg</TableCell>
-                    <TableCell>1</TableCell>
-                    <TableCell>2</TableCell>
-                    <TableCell>3</TableCell>
-                    <TableCell>4</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell variant="head">Your raw</TableCell>
-                    <TableCell>1</TableCell>
-                    <TableCell>2</TableCell>
-                    <TableCell>3</TableCell>
-                    <TableCell>4</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell variant="head">Your normalized</TableCell>
-                    <TableCell>1</TableCell>
-                    <TableCell>2</TableCell>
-                    <TableCell>3</TableCell>
-                    <TableCell>4</TableCell>
-                  </TableRow>
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </Card>
-        </Grid>
+          );
+        })}
       </Grid>
       <Typography variant="h2">General Circuit Stats</Typography>
       <TableContainer>
@@ -126,10 +131,10 @@ function Report({ group, full }: { group: string; full: CircuitView }) {
               <TableCell>Avg. Competitions/Group</TableCell>
             </TableRow>
             <TableRow>
-              <TableCell>1</TableCell>
-              <TableCell>1</TableCell>
-              <TableCell>1</TableCell>
-              <TableCell>1</TableCell>
+              <TableCell>{size(full.groups)}</TableCell>
+              <TableCell>{round(full.avgGroupsPerComp, 2)}</TableCell>
+              <TableCell>{round(full.avgJudgesPerComp, 2)}</TableCell>
+              <TableCell>{round(full.avgCompsPerGroup, 2)}</TableCell>
             </TableRow>
           </TableBody>
         </Table>
@@ -169,12 +174,19 @@ export default function ReportView({ year }: { year: string }) {
 
   return (
     <>
-      <TextField select value={group} onChange={handleChange}>
-        {map(groups && groups.sort(), (g) => (
-          <MenuItem value={g}>{g}</MenuItem>
-        ))}
-      </TextField>
-      {group && full && <Report group={group} full={full} />}
+      <Grid container spacing={2} justify="center" alignItems="center">
+        <Grid item>
+          <Typography>Select a team:</Typography>
+        </Grid>
+        <Grid item>
+          <TextField select value={group} onChange={handleChange}>
+            {map(groups && groups.sort(), (g) => (
+              <MenuItem value={g}>{g}</MenuItem>
+            ))}
+          </TextField>
+        </Grid>
+      </Grid>
+      {group && full && <Report group={group} full={full} year={year} />}
     </>
   );
 }

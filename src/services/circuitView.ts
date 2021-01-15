@@ -14,8 +14,9 @@ import {
   filter,
   get,
   size,
+  has,
+  set,
 } from "lodash";
-
 import { DETAILS } from "./compDetails";
 import { GSheetsScoreManager } from "./scoreManager";
 import { ScoresDict, Group, Stat, Rank } from "../types";
@@ -23,16 +24,20 @@ import { ScoresDict, Group, Stat, Rank } from "../types";
 export class CircuitView {
   year: Year;
   comps: string[];
-  compDetails: Record<string, Record<string, any>> = {};
-  groups: string[] = [];
-  amed: Record<string, number> = {};
-  amean: Record<string, number> = {};
-  rmed: Record<string, number> = {};
-  rmean: Record<string, number> = {};
-  amedRank: Record<string, number> = {};
-  ameanRank: Record<string, number> = {};
-  rmedRank: Record<string, number> = {};
-  rmeanRank: Record<string, number> = {};
+  compDetails: Record<string, CompDetail> = {};
+  groups: Group[] = [];
+  amed: Record<Group, Stat> = {};
+  amean: Record<Group, Stat> = {};
+  rmed: Record<Group, Stat> = {};
+  rmean: Record<Group, Stat> = {};
+  amedRank: Record<Group, Rank> = {};
+  ameanRank: Record<Group, Rank> = {};
+  rmedRank: Record<Group, Rank> = {};
+  rmeanRank: Record<Group, Rank> = {};
+  attended: Record<Group, string[]> = {};
+  avgGroupsPerComp = 0;
+  avgJudgesPerComp = 0;
+  avgCompsPerGroup = 0;
 
   /**
    * Process competition scores to produce a CircuitView. `num` is the number of competitions to
@@ -54,8 +59,8 @@ export class CircuitView {
   }
 
   async process() {
-    // FIXME For now, do sequentially because we need to cache
-    const details = {} as Record<string, Record<string, any>>;
+    // FIXME For now, do sequentially because we need to cache in localStorage internally
+    const details = {} as Record<string, CompDetail>;
     for (const comp of this.comps) {
       details[comp] = await handleComp(this.year, comp);
     }
@@ -84,23 +89,26 @@ export class CircuitView {
     this.rmeanRank = get_ranks(this.rmean);
 
     // compute misc. stats
-    // cv.attended: Record<Group, Array<string>> = reduce(cv.groups, (acc, group) => {
-    //     const list = [comp for comp in cv.comps if group in cv.comp_details[comp][RAW]];
-    //     const list = filter(group in cv.comp_details[comp][RAW] ?
-    //     acc[group] = list
-    // }, {});
+    this.attended = reduce(
+      this.groups,
+      (acc, group) =>
+        set(
+          acc,
+          group,
+          filter(this.comps, (comp) => {
+            // See if this group competed in this comp
+            if (has(this.compDetails[comp].raw, group)) {
+              return true;
+            }
+            return false;
+          })
+        ),
+      {}
+    );
 
-    // {
-    //     group: [
-    //         ]
-    //     for group in cv.groups
-    // }
-    // cv.avg_groups_per_comp = numpy.mean(
-    //     [len(cv.comp_details[comp][RAW]) for comp in cv.comp_details])
-    // cv.avg_judges_per_comp = numpy.mean(
-    //     [len(cv.comp_details[comp]["judge_avgs"]) for comp in cv.comp_details])
-    // cv.avg_comps_per_group = numpy.mean(
-    //     [len(cv.attended[group]) for group in cv.groups])
+    this.avgGroupsPerComp = mean(map(this.compDetails, (det) => size(det.raw)));
+    this.avgJudgesPerComp = mean(map(this.compDetails, (det) => size(det.judgeAvgs)));
+    this.avgCompsPerGroup = mean(map(this.groups, (g) => size(this.attended[g])));
     // cv.best_score = {
     //     "group": "Lel",
     //     "comp": "Lol",
@@ -135,9 +143,7 @@ export type Year = string;
     :param all_scores: all competition scores
     :return: tuple of [raw scores dict, normalized scores dict]
     */
-function build_totals(
-  allScores?: Record<string, Record<string, ScoresDict>>
-): [ScoresDict, ScoresDict] {
+function build_totals(allScores?: Record<string, CompDetail>): [ScoresDict, ScoresDict] {
   const allRaw: ScoresDict = {};
   const allNormal: ScoresDict = {};
 
@@ -195,7 +201,7 @@ function get_ranks(statsMap: Record<Group, Stat>): Record<Group, Rank> {
  * :param comp: name of comp
  * :return: raw and normalized score dictionary, mapping group to list of scores for this comp
  */
-export const handleComp = async (year: Year, comp: string): Promise<Record<string, any>> => {
+export const handleComp = async (year: Year, comp: string): Promise<CompDetail> => {
   const scoreManager = new GSheetsScoreManager();
 
   const [raw, numJudges] = await scoreManager.get_raw_scores(year, comp);
@@ -224,6 +230,15 @@ export const handleComp = async (year: Year, comp: string): Promise<Record<strin
     judgeAvgs,
   };
 };
+
+interface CompDetail {
+  raw: Record<string, number[]>;
+  normal: Record<string, number[]>;
+  finalScores: Record<string, number>;
+  max: number;
+  min: number;
+  judgeAvgs: number[];
+}
 
 export const getStandings = (cv: CircuitView) => {
   const buckets: Record<number, string[]> = {};
