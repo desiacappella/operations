@@ -14,25 +14,31 @@ import {
   filter,
   get,
   size,
+  has,
+  set,
 } from "lodash";
-
 import { DETAILS } from "./compDetails";
 import { GSheetsScoreManager } from "./scoreManager";
 import { ScoresDict, Group, Stat, Rank } from "../types";
+import log from "loglevel";
 
 export class CircuitView {
   year: Year;
   comps: string[];
-  compDetails: Record<string, Record<string, any>> = {};
-  groups: string[] = [];
-  amed: Record<string, number> = {};
-  amean: Record<string, number> = {};
-  rmed: Record<string, number> = {};
-  rmean: Record<string, number> = {};
-  amedRank: Record<string, number> = {};
-  ameanRank: Record<string, number> = {};
-  rmedRank: Record<string, number> = {};
-  rmeanRank: Record<string, number> = {};
+  compDetails: Record<string, CompDetail> = {};
+  groups: Group[] = [];
+  amed: Record<Group, Stat> = {};
+  amean: Record<Group, Stat> = {};
+  rmed: Record<Group, Stat> = {};
+  rmean: Record<Group, Stat> = {};
+  amedRank: Record<Group, Rank> = {};
+  ameanRank: Record<Group, Rank> = {};
+  rmedRank: Record<Group, Rank> = {};
+  rmeanRank: Record<Group, Rank> = {};
+  attended: Record<Group, string[]> = {};
+  avgGroupsPerComp = 0;
+  avgJudgesPerComp = 0;
+  avgCompsPerGroup = 0;
 
   /**
    * Process competition scores to produce a CircuitView. `num` is the number of competitions to
@@ -52,6 +58,90 @@ export class CircuitView {
 
     this.comps = _comps.slice(0, num);
   }
+
+  async process() {
+    // FIXME For now, do sequentially because we need to cache in localStorage internally
+    const details = {} as Record<string, CompDetail>;
+    for (const comp of this.comps) {
+      details[comp] = await handleComp(this.year, comp);
+    }
+
+    this.compDetails = details; /* zipObject(
+    cv.comps,
+    await Promise.all(map(cv.comps, comp => handleComp(cv.year, comp)))
+  );*/
+
+    // build normals
+    const [raw, normal] = build_totals(this.compDetails);
+    this.groups = keys(raw);
+
+    // evaluate numbers
+    const [amed, amean] = get_stats(raw);
+    const [rmed, rmean] = get_stats(normal);
+    this.amed = amed;
+    this.amean = amean;
+    this.rmed = rmed;
+    this.rmean = rmean;
+
+    // get ranks
+    this.amedRank = get_ranks(this.amed);
+    this.ameanRank = get_ranks(this.amean);
+    this.rmedRank = get_ranks(this.rmed);
+    this.rmeanRank = get_ranks(this.rmean);
+
+    // compute misc. stats
+    this.attended = reduce(
+      this.groups,
+      (acc, group) =>
+        set(
+          acc,
+          group,
+          filter(this.comps, (comp) => {
+            // See if this group competed in this comp
+            if (has(this.compDetails[comp].raw, group)) {
+              return true;
+            }
+            return false;
+          })
+        ),
+      {}
+    );
+
+    try {
+      this.avgGroupsPerComp = mean(map(this.compDetails, (det) => size(det.raw)));
+      this.avgJudgesPerComp = mean(map(this.compDetails, (det) => size(det.judgeAvgs)));
+      this.avgCompsPerGroup = mean(map(this.groups, (g) => size(this.attended[g])));
+    } catch (err) {
+      log.error(err);
+      this.avgGroupsPerComp = 0;
+      this.avgJudgesPerComp = 0;
+      this.avgCompsPerGroup = 0;
+    }
+    // cv.best_score = {
+    //     "group": "Lel",
+    //     "comp": "Lol",
+    //     "score": 420.69
+    // }
+  }
+
+  getGroupStats(group: Group) {
+    return {
+      amed: this.amed[group] || 0,
+      amean: this.amean[group] || 0,
+      rmed: this.rmed[group] || 0,
+      rmean: this.rmean[group] || 0,
+    };
+  }
+
+  getGroupRanks(group: Group) {
+    return {
+      amed: this.amedRank[group] || this.groups.length + 1,
+      amean: this.ameanRank[group] || this.groups.length + 1,
+      rmed: this.rmedRank[group] || this.groups.length + 1,
+      rmean: this.rmeanRank[group] || this.groups.length + 1,
+      total: this.groups.length,
+    };
+  }
 }
 
 export type Year = string;
@@ -61,9 +151,7 @@ export type Year = string;
     :param all_scores: all competition scores
     :return: tuple of [raw scores dict, normalized scores dict]
     */
-function build_totals(
-  allScores?: Record<string, Record<string, ScoresDict>>
-): [ScoresDict, ScoresDict] {
+function build_totals(allScores?: Record<string, CompDetail>): [ScoresDict, ScoresDict] {
   const allRaw: ScoresDict = {};
   const allNormal: ScoresDict = {};
 
@@ -115,68 +203,13 @@ function get_ranks(statsMap: Record<Group, Stat>): Record<Group, Rank> {
   );
 }
 
-export const processCV = async (cv: CircuitView) => {
-  // FIXME For now, do sequentially because we need to cache
-  const details = {} as Record<string, Record<string, any>>;
-  for (const comp of cv.comps) {
-    details[comp] = await handleComp(cv.year, comp);
-  }
-
-  cv.compDetails = details; /* zipObject(
-    cv.comps,
-    await Promise.all(map(cv.comps, comp => handleComp(cv.year, comp)))
-  );*/
-
-  // build normals
-  const [raw, normal] = build_totals(cv.compDetails);
-  cv.groups = keys(raw);
-
-  // evaluate numbers
-  const [amed, amean] = get_stats(raw);
-  const [rmed, rmean] = get_stats(normal);
-  cv.amed = amed;
-  cv.amean = amean;
-  cv.rmed = rmed;
-  cv.rmean = rmean;
-
-  // get ranks
-  cv.amedRank = get_ranks(cv.amed);
-  cv.ameanRank = get_ranks(cv.amean);
-  cv.rmedRank = get_ranks(cv.rmed);
-  cv.rmeanRank = get_ranks(cv.rmean);
-
-  // compute misc. stats
-  // cv.attended: Record<Group, Array<string>> = reduce(cv.groups, (acc, group) => {
-  //     const list = [comp for comp in cv.comps if group in cv.comp_details[comp][RAW]];
-  //     const list = filter(group in cv.comp_details[comp][RAW] ?
-  //     acc[group] = list
-  // }, {});
-
-  // {
-  //     group: [
-  //         ]
-  //     for group in cv.groups
-  // }
-  // cv.avg_groups_per_comp = numpy.mean(
-  //     [len(cv.comp_details[comp][RAW]) for comp in cv.comp_details])
-  // cv.avg_judges_per_comp = numpy.mean(
-  //     [len(cv.comp_details[comp]["judge_avgs"]) for comp in cv.comp_details])
-  // cv.avg_comps_per_group = numpy.mean(
-  //     [len(cv.attended[group]) for group in cv.groups])
-  // cv.best_score = {
-  //     "group": "Lel",
-  //     "comp": "Lol",
-  //     "score": 420.69
-  // }
-};
-
 /**
  * Handles a single competition.
  * :param year: year
  * :param comp: name of comp
  * :return: raw and normalized score dictionary, mapping group to list of scores for this comp
  */
-export const handleComp = async (year: Year, comp: string): Promise<Record<string, any>> => {
+export const handleComp = async (year: Year, comp: string): Promise<CompDetail> => {
   const scoreManager = new GSheetsScoreManager();
 
   const [raw, numJudges] = await scoreManager.get_raw_scores(year, comp);
@@ -205,6 +238,15 @@ export const handleComp = async (year: Year, comp: string): Promise<Record<strin
     judgeAvgs,
   };
 };
+
+interface CompDetail {
+  raw: Record<string, number[]>;
+  normal: Record<string, number[]>;
+  finalScores: Record<string, number>;
+  max: number;
+  min: number;
+  judgeAvgs: number[];
+}
 
 export const getStandings = (cv: CircuitView) => {
   const buckets: Record<number, string[]> = {};

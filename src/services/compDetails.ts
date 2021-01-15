@@ -1,4 +1,10 @@
-export const DETAILS: Record<string, Record<string, any>> = {
+interface SingleYear {
+  order: string[];
+  names: Record<string, string>;
+  sheetIds: Record<string, string>;
+}
+
+export const DETAILS: Record<string, SingleYear> = {
   "18-19": {
     order: ["jeena", "anahat", "sangeet", "mehfil", "sahana", "gathe", "awaazein"],
     names: {

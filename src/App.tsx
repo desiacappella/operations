@@ -8,6 +8,7 @@ import Standings from "./pages/Standings";
 import { Grid } from "@material-ui/core";
 import "typeface-roboto";
 import Results from "./pages/Results";
+import Report from "./pages/Report";
 
 log.setLevel("debug");
 
@@ -66,12 +67,17 @@ export default function App() {
               </Grid>
               <Grid item>
                 <Link to="/">
-                  <Typography>Standings</Typography>
+                  <Typography>Home/Standings</Typography>
                 </Link>
               </Grid>
               <Grid item>
                 <Link to="/results">
                   <Typography>Comp Results</Typography>
+                </Link>
+              </Grid>
+              <Grid item>
+                <Link to="/report">
+                  <Typography>Team Reports</Typography>
                 </Link>
               </Grid>
               <Grid item>
@@ -85,6 +91,11 @@ export default function App() {
                 <Route path="/results">
                   <Grid item xs={12} lg={8}>
                     <Results year={year} />
+                  </Grid>
+                </Route>
+                <Route path="/report">
+                  <Grid item xs={12} lg={10}>
+                    <Report year={year} />
                   </Grid>
                 </Route>
                 <Route path="/">
