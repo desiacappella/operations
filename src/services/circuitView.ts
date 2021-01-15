@@ -20,6 +20,7 @@ import {
 import { DETAILS } from "./compDetails";
 import { GSheetsScoreManager } from "./scoreManager";
 import { ScoresDict, Group, Stat, Rank } from "../types";
+import log from "loglevel";
 
 export class CircuitView {
   year: Year;
@@ -106,9 +107,16 @@ export class CircuitView {
       {}
     );
 
-    this.avgGroupsPerComp = mean(map(this.compDetails, (det) => size(det.raw)));
-    this.avgJudgesPerComp = mean(map(this.compDetails, (det) => size(det.judgeAvgs)));
-    this.avgCompsPerGroup = mean(map(this.groups, (g) => size(this.attended[g])));
+    try {
+      this.avgGroupsPerComp = mean(map(this.compDetails, (det) => size(det.raw)));
+      this.avgJudgesPerComp = mean(map(this.compDetails, (det) => size(det.judgeAvgs)));
+      this.avgCompsPerGroup = mean(map(this.groups, (g) => size(this.attended[g])));
+    } catch (err) {
+      log.error(err);
+      this.avgGroupsPerComp = 0;
+      this.avgJudgesPerComp = 0;
+      this.avgCompsPerGroup = 0;
+    }
     // cv.best_score = {
     //     "group": "Lel",
     //     "comp": "Lol",
