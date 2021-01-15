@@ -76,7 +76,7 @@ class CircuitView:
             _comps = json.load(infile)["order"]
 
         if num > len(_comps):
-            raise "Illegal argument: num"
+            raise Exception("Illegal argument: num")
 
         if num < 0:
             num = len(_comps)

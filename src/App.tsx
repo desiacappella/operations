@@ -8,12 +8,13 @@ import Standings from "./pages/Standings";
 import { Grid } from "@material-ui/core";
 import "typeface-roboto";
 import Results from "./pages/Results";
+import Report from "./pages/Report";
 
 log.setLevel("debug");
 
 export default function App() {
   const [isSignedIn, setSignedIn] = useState(false);
-  const [year, setYear] = useState("19-20");
+  const [year, setYear] = useState("18-19");
 
   useEffect(() => {
     getGapi().load("client:auth2", () => {
@@ -85,6 +86,11 @@ export default function App() {
                 <Route path="/results">
                   <Grid item xs={12} lg={8}>
                     <Results year={year} />
+                  </Grid>
+                </Route>
+                <Route path="/report">
+                  <Grid item xs={12} lg={10}>
+                    <Report year={year} />
                   </Grid>
                 </Route>
                 <Route path="/">

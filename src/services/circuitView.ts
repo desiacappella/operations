@@ -52,6 +52,80 @@ export class CircuitView {
 
     this.comps = _comps.slice(0, num);
   }
+
+  async process() {
+    // FIXME For now, do sequentially because we need to cache
+    const details = {} as Record<string, Record<string, any>>;
+    for (const comp of this.comps) {
+      details[comp] = await handleComp(this.year, comp);
+    }
+
+    this.compDetails = details; /* zipObject(
+    cv.comps,
+    await Promise.all(map(cv.comps, comp => handleComp(cv.year, comp)))
+  );*/
+
+    // build normals
+    const [raw, normal] = build_totals(this.compDetails);
+    this.groups = keys(raw);
+
+    // evaluate numbers
+    const [amed, amean] = get_stats(raw);
+    const [rmed, rmean] = get_stats(normal);
+    this.amed = amed;
+    this.amean = amean;
+    this.rmed = rmed;
+    this.rmean = rmean;
+
+    // get ranks
+    this.amedRank = get_ranks(this.amed);
+    this.ameanRank = get_ranks(this.amean);
+    this.rmedRank = get_ranks(this.rmed);
+    this.rmeanRank = get_ranks(this.rmean);
+
+    // compute misc. stats
+    // cv.attended: Record<Group, Array<string>> = reduce(cv.groups, (acc, group) => {
+    //     const list = [comp for comp in cv.comps if group in cv.comp_details[comp][RAW]];
+    //     const list = filter(group in cv.comp_details[comp][RAW] ?
+    //     acc[group] = list
+    // }, {});
+
+    // {
+    //     group: [
+    //         ]
+    //     for group in cv.groups
+    // }
+    // cv.avg_groups_per_comp = numpy.mean(
+    //     [len(cv.comp_details[comp][RAW]) for comp in cv.comp_details])
+    // cv.avg_judges_per_comp = numpy.mean(
+    //     [len(cv.comp_details[comp]["judge_avgs"]) for comp in cv.comp_details])
+    // cv.avg_comps_per_group = numpy.mean(
+    //     [len(cv.attended[group]) for group in cv.groups])
+    // cv.best_score = {
+    //     "group": "Lel",
+    //     "comp": "Lol",
+    //     "score": 420.69
+    // }
+  }
+
+  getGroupStats(group: Group) {
+    return {
+      amed: this.amed[group] || 0,
+      amean: this.amean[group] || 0,
+      rmed: this.rmed[group] || 0,
+      rmean: this.rmean[group] || 0,
+    };
+  }
+
+  getGroupRanks(group: Group) {
+    return {
+      amed: this.amedRank[group] || this.groups.length + 1,
+      amean: this.ameanRank[group] || this.groups.length + 1,
+      rmed: this.rmedRank[group] || this.groups.length + 1,
+      rmean: this.rmeanRank[group] || this.groups.length + 1,
+      total: this.groups.length,
+    };
+  }
 }
 
 export type Year = string;
@@ -114,61 +188,6 @@ function get_ranks(statsMap: Record<Group, Stat>): Record<Group, Rank> {
     {} as Record<Group, Rank>
   );
 }
-
-export const processCV = async (cv: CircuitView) => {
-  // FIXME For now, do sequentially because we need to cache
-  const details = {} as Record<string, Record<string, any>>;
-  for (const comp of cv.comps) {
-    details[comp] = await handleComp(cv.year, comp);
-  }
-
-  cv.compDetails = details; /* zipObject(
-    cv.comps,
-    await Promise.all(map(cv.comps, comp => handleComp(cv.year, comp)))
-  );*/
-
-  // build normals
-  const [raw, normal] = build_totals(cv.compDetails);
-  cv.groups = keys(raw);
-
-  // evaluate numbers
-  const [amed, amean] = get_stats(raw);
-  const [rmed, rmean] = get_stats(normal);
-  cv.amed = amed;
-  cv.amean = amean;
-  cv.rmed = rmed;
-  cv.rmean = rmean;
-
-  // get ranks
-  cv.amedRank = get_ranks(cv.amed);
-  cv.ameanRank = get_ranks(cv.amean);
-  cv.rmedRank = get_ranks(cv.rmed);
-  cv.rmeanRank = get_ranks(cv.rmean);
-
-  // compute misc. stats
-  // cv.attended: Record<Group, Array<string>> = reduce(cv.groups, (acc, group) => {
-  //     const list = [comp for comp in cv.comps if group in cv.comp_details[comp][RAW]];
-  //     const list = filter(group in cv.comp_details[comp][RAW] ?
-  //     acc[group] = list
-  // }, {});
-
-  // {
-  //     group: [
-  //         ]
-  //     for group in cv.groups
-  // }
-  // cv.avg_groups_per_comp = numpy.mean(
-  //     [len(cv.comp_details[comp][RAW]) for comp in cv.comp_details])
-  // cv.avg_judges_per_comp = numpy.mean(
-  //     [len(cv.comp_details[comp]["judge_avgs"]) for comp in cv.comp_details])
-  // cv.avg_comps_per_group = numpy.mean(
-  //     [len(cv.attended[group]) for group in cv.groups])
-  // cv.best_score = {
-  //     "group": "Lel",
-  //     "comp": "Lol",
-  //     "score": 420.69
-  // }
-};
 
 /**
  * Handles a single competition.
