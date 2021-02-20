@@ -1,5 +1,5 @@
 import { getGapi } from "./google";
-import { DETAILS } from "./compDetails";
+import { DETAILS } from "./compIds";
 import { findIndex, reduce, set, get, findLastIndex } from "lodash";
 import { ScoresDict } from "../types";
 import log from "loglevel";

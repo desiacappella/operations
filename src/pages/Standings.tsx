@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Grid, Typography } from "@material-ui/core";
 import { CircuitView, getFullStandings } from "../services/circuitView";
-import { NUM_COMPS } from "../services/compDetails";
+import { NUM_COMPS } from "../services/compIds";
 import { map, join, sortBy, get, size } from "lodash";
 
 export default function Standings({ year }: { year: string }) {

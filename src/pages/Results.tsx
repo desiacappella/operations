@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Tabs, Tab, Typography } from "@material-ui/core";
-import { DETAILS } from "../services/compDetails";
+import { DETAILS } from "../services/compIds";
 import { map, get } from "lodash";
 import { GSheetsScoreManager } from "../services/scoreManager";
 

@@ -17,10 +17,11 @@ import {
   has,
   set,
 } from "lodash";
-import { DETAILS } from "./compDetails";
+import { DETAILS } from "./compIds";
 import { GSheetsScoreManager } from "./scoreManager";
 import { ScoresDict, Group, Stat, Rank } from "../types";
 import log from "loglevel";
+import { CompDetail, handleComp } from "./compDetails";
 
 export class CircuitView {
   year: Year;
@@ -63,7 +64,7 @@ export class CircuitView {
     // FIXME For now, do sequentially because we need to cache in localStorage internally
     const details = {} as Record<string, CompDetail>;
     for (const comp of this.comps) {
-      details[comp] = await handleComp(this.year, comp);
+      details[comp] = await handleGComp(this.year, comp);
     }
 
     this.compDetails = details; /* zipObject(
@@ -203,49 +204,12 @@ function get_ranks(statsMap: Record<Group, Stat>): Record<Group, Rank> {
   );
 }
 
-/**
- * Handles a single competition.
- * :param year: year
- * :param comp: name of comp
- * :return: raw and normalized score dictionary, mapping group to list of scores for this comp
- */
-export const handleComp = async (year: Year, comp: string): Promise<CompDetail> => {
+export const handleGComp = async (year: Year, comp: string): Promise<CompDetail> => {
   const scoreManager = new GSheetsScoreManager();
 
   const [raw, numJudges] = await scoreManager.get_raw_scores(year, comp);
 
-  // normalize for each group for this comp
-  const judgeAvgs = map(range(numJudges), (i) => {
-    const judgeScores = map(raw, (scores) => scores[i]);
-    const m = mean(judgeScores);
-    return m;
-  });
-
-  const normal = mapValues(raw, (scores) => map(scores, (x, i) => (x * 100) / judgeAvgs[i]));
-
-  const finalScores = mapValues(normal, (scores) => mean(scores));
-  const finalScoresList = values(finalScores);
-  const compMax = finalScoresList.length ? max(finalScoresList) : 0;
-  const compMin = finalScoresList.length ? min(finalScoresList) : 0;
-  // TODO judge names
-
-  return {
-    raw,
-    normal,
-    finalScores,
-    max: compMax,
-    min: compMin,
-    judgeAvgs,
-  };
-};
-
-interface CompDetail {
-  raw: Record<string, number[]>;
-  normal: Record<string, number[]>;
-  finalScores: Record<string, number>;
-  max: number;
-  min: number;
-  judgeAvgs: number[];
+  return handleComp(raw, numJudges);
 }
 
 export const getStandings = (cv: CircuitView) => {

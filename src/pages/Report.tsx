@@ -16,7 +16,7 @@ import { find, last, map, range, round, size, slice, sortBy, values } from "loda
 import React, { useEffect, useState } from "react";
 import logo from "../images/logo.png";
 import { CircuitView } from "../services/circuitView";
-import { DETAILS } from "../services/compDetails";
+import { DETAILS } from "../services/compIds";
 
 function Report({ year, group, full }: { year: string; group: string; full: CircuitView }) {
   const ranks = full.getGroupRanks(group);
