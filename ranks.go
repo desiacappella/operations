@@ -169,7 +169,7 @@ func evictWorstTeam(comp *Competition, matchNum int) *Team {
 }
 
 // Modifies the given teams + competitions
-func match(teams []*Team, comps []*Competition, matchNum int) {
+func teamDrivenMatch(teams []*Team, comps []*Competition, matchNum int) {
 	var max int
 	if matchNum == 1 {
 		max = series1Max
@@ -255,7 +255,7 @@ func match(teams []*Team, comps []*Competition, matchNum int) {
 func option1(teams []*Team, comps []*Competition) {
 	// First series first.
 	series1Comps := comps[:series1]
-	match(teams, series1Comps, 1)
+	teamDrivenMatch(teams, series1Comps, 1)
 	fmt.Printf("%v\t%v\t%v\t%v\n", series1Comps[0], series1Comps[1], series1Comps[2], series1Comps[3])
 	fmt.Println("Done!")
 
@@ -268,7 +268,7 @@ func option1(teams []*Team, comps []*Competition) {
 	}
 
 	series2Comps := comps[series1:]
-	match(series2Teams, series2Comps, 2)
+	teamDrivenMatch(series2Teams, series2Comps, 2)
 	fmt.Printf("%v\t%v\n", series2Comps[0], series2Comps[1])
 	fmt.Println("Done!")
 }

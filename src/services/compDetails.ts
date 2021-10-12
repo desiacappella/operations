@@ -1,5 +1,5 @@
 import { map, mapValues, values, range } from "lodash";
-import { max, mean, min,  } from "mathjs";
+import { max, median, mean, min } from "mathjs";
 import { ScoresDict } from "../types";
 
 /**
@@ -18,8 +18,10 @@ export const handleComp = (raw: ScoresDict, numJudges: number): CompDetail => {
 
   const normal = mapValues(raw, (scores) => map(scores, (x, i) => (x * 100) / judgeAvgs[i]));
 
-  const finalScores = mapValues(normal, (scores) => mean(scores));
-  const finalScoresList = values(finalScores);
+  const rawAverages = mapValues(raw, (scores) => mean(scores));
+  const normalAverages = mapValues(normal, (scores) => mean(scores));
+  const normalMedians = mapValues(normal, (scores) => median(scores));
+  const finalScoresList = values(normalAverages);
   const compMax = finalScoresList.length ? max(finalScoresList) : 0;
   const compMin = finalScoresList.length ? min(finalScoresList) : 0;
   // TODO judge names
@@ -27,7 +29,9 @@ export const handleComp = (raw: ScoresDict, numJudges: number): CompDetail => {
   return {
     raw,
     normal,
-    finalScores,
+    rawAverages,
+    normalAverages,
+    normalMedians,
     max: compMax,
     min: compMin,
     judgeAvgs,
@@ -37,7 +41,9 @@ export const handleComp = (raw: ScoresDict, numJudges: number): CompDetail => {
 export interface CompDetail {
   raw: ScoresDict;
   normal: ScoresDict;
-  finalScores: Record<string, number>;
+  rawAverages: Record<string, number>;
+  normalAverages: Record<string, number>;
+  normalMedians: Record<string, number>;
   max: number;
   min: number;
   judgeAvgs: number[];

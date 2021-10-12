@@ -1,8 +1,23 @@
-import { Button, Table, TableCell, TableContainer, TableHead } from "@material-ui/core";
-import { map, reduce, set, size } from "lodash";
+import log from "loglevel";
+import {
+  Button,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+} from "@material-ui/core";
+import { get, map, range, reduce, set, size, values } from "lodash";
 import Papa from "papaparse";
 import React, { useState } from "react";
 import { ScoresDict } from "../types";
+
+import COMP from "../scores/20-21/jeena.json";
+import TEAM_MAP from "../scores/20-21/oiidMap.json";
+import { handleComp } from "../services/compDetails";
+
+const [scores, numJudges]: [ScoresDict, number] = [COMP, size(get(values(COMP), `[0]`))];
 
 const parsePromise = async (file: any): Promise<Record<string, string[]>[]> => {
   return new Promise(function (complete: any, error) {
@@ -37,31 +52,55 @@ const csvParse = async (file: any): Promise<[ScoresDict, number]> => {
   ];
 };
 
-export default function Calculator() {
-  const [scores, setScore] = useState<[ScoresDict, number]>([{}, 0]);
+const jsonParse = async (file: File): Promise<[ScoresDict, number]> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      let dict = {};
+      if (event.target && event.target.result) {
+        dict = JSON.parse(event.target.result.toString());
+      }
 
-  const handleUpload = async ({ target }: any) => {
-    if (target.files.length) {
-      setScore(await csvParse(target.files[0]));
-    }
-  };
+      resolve([dict, size(get(values(dict), `[0]`))]);
+    };
+    reader.onerror = reject;
+    reader.readAsText(file);
+  });
+};
+
+const x = handleComp(scores, numJudges);
+
+export default function Calculator() {
+  const oiidMap: Record<string, string> = TEAM_MAP;
+
+  log.debug(JSON.stringify(x.normal, null, 2));
 
   // Cuz we have a shit ton of judges, judges are rows
   return (
-    <div>
-      <Button variant="contained" color="primary" component="span" onChange={handleUpload}>
-        <input hidden accept="text/csv" type="file" />
-        Upload
-      </Button>
-      <TableContainer>
-        <Table>
-          <TableHead>
-            {map(scores[0], (_raw, teamName) => (
-              <TableCell>{teamName}</TableCell>
-            ))}
-          </TableHead>
-        </Table>
-      </TableContainer>
-    </div>
+    <TableContainer>
+      <Table>
+        <TableHead>
+          <TableRow>
+            <TableCell>Team</TableCell>
+            <TableCell>Raw Average</TableCell>
+            <TableCell>Normal Average</TableCell>
+            <TableCell>Normal Median</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {map(x.raw, (val, tiid) => (
+            <TableRow>
+              <TableCell variant="head">{oiidMap[tiid]}</TableCell>
+              <TableCell variant="head">{x.rawAverages[tiid]}</TableCell>
+              <TableCell variant="head">{x.normalAverages[tiid]}</TableCell>
+              <TableCell variant="head">{x.normalMedians[tiid]}</TableCell>
+              {map(val, (score) => (
+                <TableCell>{score}</TableCell>
+              ))}
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </TableContainer>
   );
 }

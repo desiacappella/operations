@@ -9,6 +9,7 @@ import { Grid } from "@material-ui/core";
 import "typeface-roboto";
 import Results from "./pages/Results";
 import Report from "./pages/Report";
+import Calculator from "./pages/Calculator";
 
 log.setLevel("debug");
 
@@ -81,6 +82,11 @@ export default function App() {
                 </Link>
               </Grid>
               <Grid item>
+                <Link to="/calculator">
+                  <Typography>Calculator</Typography>
+                </Link>
+              </Grid>
+              <Grid item>
                 <Button onClick={handleSignOut} variant="outlined">
                   Sign Out!
                 </Button>
@@ -96,6 +102,11 @@ export default function App() {
                 <Route path="/report">
                   <Grid item xs={12} lg={10}>
                     <Report year={year} />
+                  </Grid>
+                </Route>
+                <Route path="/calculator">
+                  <Grid item xs={12} lg={10}>
+                    <Calculator />
                   </Grid>
                 </Route>
                 <Route path="/">
