@@ -9,13 +9,12 @@ import { Grid } from "@material-ui/core";
 import "typeface-roboto";
 import Results from "./pages/Results";
 import Report from "./pages/Report";
-import Calculator from "./pages/Calculator";
 
 log.setLevel("debug");
 
 export default function App() {
   const [isSignedIn, setSignedIn] = useState(false);
-  const [year, setYear] = useState("19-20");
+  const [year, setYear] = useState("2022");
 
   useEffect(() => {
     getGapi().load("client:auth2", () => {
@@ -64,6 +63,7 @@ export default function App() {
                 <TextField select label="Season" value={year} onChange={handleChange}>
                   <MenuItem value="18-19">2018-2019</MenuItem>
                   <MenuItem value="19-20">2019-2020</MenuItem>
+                  <MenuItem value="2022">2022</MenuItem>
                 </TextField>
               </Grid>
               <Grid item>
@@ -79,11 +79,6 @@ export default function App() {
               <Grid item>
                 <Link to="/report">
                   <Typography>Team Reports</Typography>
-                </Link>
-              </Grid>
-              <Grid item>
-                <Link to="/calculator">
-                  <Typography>Calculator</Typography>
                 </Link>
               </Grid>
               <Grid item>
@@ -104,13 +99,8 @@ export default function App() {
                     <Report year={year} />
                   </Grid>
                 </Route>
-                <Route path="/calculator">
-                  <Grid item xs={12} lg={10}>
-                    <Calculator />
-                  </Grid>
-                </Route>
                 <Route path="/">
-                  <Grid item xs={8} lg={5}>
+                  <Grid item xs={8} lg={8}>
                     <Standings year={year} />
                   </Grid>
                 </Route>

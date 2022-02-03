@@ -27,7 +27,7 @@ function Report({ year, group, full }: { year: string; group: string; full: Circ
       <div style={{ display: "flex" }}>
         <img style={{ margin: "0 auto", height: 100 }} src={logo} />
       </div>
-      <Typography variant="h1">ASA Score Report 2018-19</Typography>
+      <Typography variant="h1">ASA Score Report {year}</Typography>
       <Typography variant="h2">{group.replace("_", " ")}</Typography>
       <TableContainer>
         <Table>
@@ -143,6 +143,7 @@ function Report({ year, group, full }: { year: string; group: string; full: Circ
   );
 }
 
+// Show a score report for a single team
 export default function ReportView({ year }: { year: string }) {
   const [circuitViews, setCircuitViews] = useState<CircuitView[]>([]);
   const [group, setGroup] = useState<string>("");

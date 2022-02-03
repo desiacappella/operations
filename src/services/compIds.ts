@@ -47,6 +47,16 @@ export const DETAILS: Record<string, SingleYear> = {
       awaazein: "1KYCn0RWMxbWabw4AuZzzsIyKZyCRnadvqcZVi9t7oDM",
     },
   },
+  "2022": {
+    order: ["sangeet", "sapna", "jeena", "awaazein"],
+    names: {
+      jeena: "Jeena",
+      sangeet: "Sangeet Saagar",
+      sapna: "Steel City Sapna",
+      awaazein: "Awaazein"
+    },
+    sheetIds: {
+      sangeet: "1HV0ytC_S8O1TrkPBjhH4Nnk43o_S8u-lz53krjFoDi4"
+    }
+  }
 };
-
-export const NUM_COMPS = 7;
