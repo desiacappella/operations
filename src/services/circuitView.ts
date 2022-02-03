@@ -17,11 +17,10 @@ import {
   has,
   set,
 } from "lodash";
-import { DETAILS } from "./compIds";
+import DETAILS from "../data/preset.json";
 import { GSheetsScoreManager } from "./scoreManager";
-import { ScoresDict, Group, Stat, Rank } from "../types";
+import { ScoresDict, Group, Stat, Rank, SingleYear } from "../types";
 import log from "loglevel";
-import { CompDetail, handleComp } from "./compDetails";
 
 export class CircuitView {
   year: Year;
@@ -49,7 +48,7 @@ export class CircuitView {
     this.year = year;
 
     // First, convert (num, year) to comps
-    const _comps: string[] = DETAILS[year].order;
+    const _comps: string[] = (DETAILS as Record<string, SingleYear>)[year].order;
 
     if (num > _comps.length) {
       throw new Error("Illegal argument: num");
@@ -268,3 +267,50 @@ export const selectGroups = (cv: CircuitView, threshold: number) => {
       get(cv.rmeanRank, `[${t}]`, size(cv.groups)) <= threshold
   );
 };
+
+/**
+ * Handles a single competition.
+ * :param year: year
+ * :param comp: name of comp
+ * :return: raw and normalized score dictionary, mapping group to list of scores for this comp
+ */
+export const handleComp = (raw: ScoresDict, numJudges: number): CompDetail => {
+  // normalize for each group for this comp
+  const judgeAvgs = map(range(numJudges), (i) => {
+    const judgeScores = map(raw, (scores) => scores[i]);
+    const m = mean(judgeScores);
+    return m;
+  });
+
+  const normal = mapValues(raw, (scores) => map(scores, (x, i) => (x * 100) / judgeAvgs[i]));
+
+  const rawAverages = mapValues(raw, (scores) => mean(scores));
+  const normalAverages = mapValues(normal, (scores) => mean(scores));
+  const normalMedians = mapValues(normal, (scores) => median(scores));
+  const finalScoresList = values(normalAverages);
+  const compMax = finalScoresList.length ? max(finalScoresList) : 0;
+  const compMin = finalScoresList.length ? min(finalScoresList) : 0;
+  // TODO judge names
+
+  return {
+    raw,
+    normal,
+    rawAverages,
+    normalAverages,
+    normalMedians,
+    max: compMax,
+    min: compMin,
+    judgeAvgs,
+  };
+};
+
+export interface CompDetail {
+  raw: ScoresDict;
+  normal: ScoresDict;
+  rawAverages: Record<string, number>;
+  normalAverages: Record<string, number>;
+  normalMedians: Record<string, number>;
+  max: number;
+  min: number;
+  judgeAvgs: number[];
+}

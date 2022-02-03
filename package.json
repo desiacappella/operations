@@ -4,6 +4,7 @@
   "private": true,
   "dependencies": {
     "@material-ui/core": "^4.9.2",
+    "@reduxjs/toolkit": "^1.7.2",
     "lodash": "^4.17.19",
     "loglevel": "^1.6.7",
     "mathjs": "^6.6.0",

@@ -1,7 +1,7 @@
 import { getGapi } from "./google";
-import { DETAILS } from "./compIds";
+import DETAILS from "../data/preset.json";
 import { findIndex, reduce, set, get, findLastIndex } from "lodash";
-import { ScoresDict } from "../types";
+import { ScoresDict, SingleYear } from "../types";
 import log from "loglevel";
 
 const KEY_PREFIX = "compDetails";
@@ -18,7 +18,7 @@ export class GSheetsScoreManager /*implements ScoreManager*/ {
 
     log.info("Had to fetch from Google sheets", year, comp);
 
-    const spreadsheetId = DETAILS[year].sheetIds[comp];
+    const spreadsheetId = (DETAILS as Record<string, SingleYear>)[year].sheetIds[comp];
 
     try {
       if (!spreadsheetId) {

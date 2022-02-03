@@ -1,21 +1,20 @@
 import React, { useState, useEffect } from "react";
 import { Grid, Typography } from "@material-ui/core";
 import { CircuitView, getFullStandings } from "../services/circuitView";
-import { NUM_COMPS } from "../services/compIds";
 import { map, join, sortBy, get, size } from "lodash";
 
-export default function Standings({ year }: { year: string }) {
+export default function Standings({ year, comps }: { year: string; comps: number }) {
   const [cv, setCv] = useState({} as CircuitView);
 
   useEffect(() => {
     const loader = async () => {
-      const temp = new CircuitView(NUM_COMPS, year);
+      const temp = new CircuitView(comps, year);
       await temp.process();
       setCv(temp);
     };
 
     loader();
-  }, [year]);
+  }, [comps, year]);
 
   return (
     <div>

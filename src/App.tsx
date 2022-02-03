@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { Button, MenuItem, TextField, Typography } from "@material-ui/core";
-import "./App.css";
 import { Link, BrowserRouter, Route, Switch } from "react-router-dom";
 import log from "loglevel";
 import { CLIENT_ID, API_KEY, DISCOVERY_DOCS, SCOPES, getGapi } from "./services/google";
@@ -16,6 +15,7 @@ log.setLevel("debug");
 export default function App() {
   const [isSignedIn, setSignedIn] = useState(false);
   const [year, setYear] = useState("19-20");
+  const [comps, setComps] = useState(0);
 
   useEffect(() => {
     getGapi().load("client:auth2", () => {
@@ -50,22 +50,24 @@ export default function App() {
     getGapi().auth2.getAuthInstance().signOut();
   };
 
-  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setYear(event.target.value);
-  };
-
   return (
     <BrowserRouter>
-      <div className="App">
+      <div style={{ textAlign: "center", padding: "16" }}>
         {isSignedIn ? (
           <>
             <Grid container justify="center" spacing={1} alignItems="center">
               <Grid item>
-                <TextField select label="Season" value={year} onChange={handleChange}>
+                <TextField select label="Season" value={year} onChange={e => setYear(e.target.value)}>
                   <MenuItem value="18-19">2018-2019</MenuItem>
                   <MenuItem value="19-20">2019-2020</MenuItem>
+                  <MenuItem value="2022">2022</MenuItem>
                 </TextField>
               </Grid>
+              <Grid item>
+                <TextField value={comps} onChange={e => setComps(+e.target.value)} type="number" />
+              </Grid>
+            </Grid>
+            <Grid container justify="center" spacing={1} alignItems="center">
               <Grid item>
                 <Link to="/">
                   <Typography>Home/Standings</Typography>
@@ -111,7 +113,7 @@ export default function App() {
                 </Route>
                 <Route path="/">
                   <Grid item xs={8} lg={5}>
-                    <Standings year={year} />
+                    <Standings year={year} comps={comps} />
                   </Grid>
                 </Route>
               </Switch>

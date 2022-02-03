@@ -16,7 +16,8 @@ import { find, last, map, range, round, size, slice, sortBy, values } from "loda
 import React, { useEffect, useState } from "react";
 import logo from "../images/logo.png";
 import { CircuitView } from "../services/circuitView";
-import { DETAILS } from "../services/compIds";
+import DETAILS from "../data/preset.json";
+import { SingleYear } from "../types";
 
 function Report({ year, group, full }: { year: string; group: string; full: CircuitView }) {
   const ranks = full.getGroupRanks(group);
@@ -27,7 +28,7 @@ function Report({ year, group, full }: { year: string; group: string; full: Circ
       <div style={{ display: "flex" }}>
         <img style={{ margin: "0 auto", height: 100 }} src={logo} />
       </div>
-      <Typography variant="h1">ASA Score Report 2018-19</Typography>
+      <Typography variant="h1">ASA Score Report {year}</Typography>
       <Typography variant="h2">{group.replace("_", " ")}</Typography>
       <TableContainer>
         <Table>
@@ -67,7 +68,7 @@ function Report({ year, group, full }: { year: string; group: string; full: Circ
             <Grid item xs={9}>
               <Card>
                 <Typography variant="h5">
-                  {find(DETAILS[year].names, (_n, k) => k === comp)}
+                  {find((DETAILS as Record<string, SingleYear>)[year].names, (_n, k) => k === comp)}
                 </Typography>
                 <Grid container spacing={1} justify="center" alignItems="center">
                   <Grid item>
@@ -149,7 +150,7 @@ export default function ReportView({ year }: { year: string }) {
 
   useEffect(() => {
     const fn = async () => {
-      const numComps = DETAILS[year].order.length;
+      const numComps = (DETAILS as Record<string, SingleYear>)[year].order.length;
 
       const cvPromises = map(range(numComps), async (i) => {
         const cv = new CircuitView(i + 1, year);

@@ -15,7 +15,7 @@ import { ScoresDict } from "../types";
 
 import COMP from "../scores/20-21/jeena.json";
 import TEAM_MAP from "../scores/20-21/oiidMap.json";
-import { handleComp } from "../services/compDetails";
+import { handleComp } from "../services/circuitView";
 
 const [scores, numJudges]: [ScoresDict, number] = [COMP, size(get(values(COMP), `[0]`))];
 
