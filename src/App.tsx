@@ -4,7 +4,7 @@ import "./App.css";
 import { Link, BrowserRouter, Route, Switch } from "react-router-dom";
 import log from "loglevel";
 import { CLIENT_ID, API_KEY, DISCOVERY_DOCS, SCOPES, getGapi } from "./services/google";
-import Standings from "./pages/Standings";
+import BidSystem from "./pages/BidSystem";
 import { Grid } from "@material-ui/core";
 import "typeface-roboto";
 import Results from "./pages/Results";
@@ -102,7 +102,7 @@ export default function App() {
                 </Route>
                 <Route path="/">
                   <Grid item xs={8} lg={8}>
-                    <Standings year={year} />
+                    <BidSystem year={year} />
                   </Grid>
                 </Route>
               </Switch>

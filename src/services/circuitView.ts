@@ -1,4 +1,4 @@
-import { median, mean, min, max } from "mathjs";
+import { median, mean, max } from "mathjs";
 import {
   reduce,
   forEach,
@@ -9,7 +9,6 @@ import {
   values,
   keys,
   map,
-  range,
   mapValues,
   filter,
   get,
