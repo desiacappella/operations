@@ -37,7 +37,7 @@ export default function Results({ year }: { year: string }) {
     };
 
     fetchStuff();
-  }, [compIndex, year]);
+  }, [comp, year]);
 
   return (
     <div>

@@ -12,7 +12,7 @@ import {
   TextField,
   Typography,
 } from "@material-ui/core";
-import { find, last, map, range, round, size, slice, sortBy, values } from "lodash";
+import { find, last, map, range, round, size } from "lodash";
 import React, { useEffect, useState } from "react";
 import logo from "../images/logo.png";
 import { CircuitView } from "../services/circuitView";
@@ -25,7 +25,7 @@ function Report({ year, group, full }: { year: string; group: string; full: Circ
   return (
     <div>
       <div style={{ display: "flex" }}>
-        <img style={{ margin: "0 auto", height: 100 }} src={logo} />
+        <img style={{ margin: "0 auto", height: 100 }} src={logo} alt="ASA" />
       </div>
       <Typography variant="h1">ASA Score Report {year}</Typography>
       <Typography variant="h2">{group.replace("_", " ")}</Typography>
