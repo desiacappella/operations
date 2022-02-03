@@ -9,6 +9,7 @@ import { Grid } from "@material-ui/core";
 import "typeface-roboto";
 import Results from "./pages/Results";
 import Report from "./pages/Report";
+import { BASENAME } from "./constants";
 
 log.setLevel("debug");
 
@@ -54,7 +55,7 @@ export default function App() {
   };
 
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={BASENAME}>
       <div className="App">
         {isSignedIn ? (
           <>
@@ -67,17 +68,17 @@ export default function App() {
                 </TextField>
               </Grid>
               <Grid item>
-                <Link to="/">
-                  <Typography>Home/Standings</Typography>
+                <Link to={`/`}>
+                  <Typography>Bid Point System</Typography>
                 </Link>
               </Grid>
               <Grid item>
-                <Link to="/results">
+                <Link to={`/results`}>
                   <Typography>Comp Results</Typography>
                 </Link>
               </Grid>
               <Grid item>
-                <Link to="/report">
+                <Link to={`/report`}>
                   <Typography>Team Reports</Typography>
                 </Link>
               </Grid>

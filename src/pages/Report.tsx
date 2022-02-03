@@ -168,10 +168,7 @@ export default function ReportView({ year }: { year: string }) {
   };
 
   const full = last(circuitViews);
-  let groups;
-  if (full) {
-    groups = full.groups;
-  }
+  const groups = full?.groups;
 
   return (
     <>
