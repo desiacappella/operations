@@ -76,14 +76,18 @@ export default function Standings({ year }: { year: string }) {
 
   return (
     <div>
-      <Slider
-        step={1}
-        marks={marks}
-        min={0}
-        max={last(marks)?.value || 0}
-        value={step}
-        onChange={handleSlide}
-      />
+      <Grid container justify="center">
+        <Grid item xs={11}>
+          <Slider
+            step={1}
+            marks={marks}
+            min={0}
+            max={last(marks)?.value || 0}
+            value={step}
+            onChange={handleSlide}
+          />
+        </Grid>
+      </Grid>
       <Grid container justify="center">
         <Grid item xs={12}>
           <Typography>

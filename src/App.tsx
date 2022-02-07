@@ -91,17 +91,17 @@ export default function App() {
             <Grid container justify="center">
               <Switch>
                 <Route path="/results">
-                  <Grid item xs={12}>
+                  <Grid item sm={12}>
                     <Results year={year} />
                   </Grid>
                 </Route>
                 <Route path="/report">
-                  <Grid item xs={12} lg={10}>
+                  <Grid item sm={12} lg={10}>
                     <Report year={year} />
                   </Grid>
                 </Route>
                 <Route path="/">
-                  <Grid item xs={8} lg={8}>
+                  <Grid item sm={12} lg={8}>
                     <Standings year={year} />
                   </Grid>
                 </Route>
