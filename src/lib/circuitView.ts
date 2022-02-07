@@ -46,15 +46,15 @@ export class CircuitView {
     this.year = year;
 
     // First, convert (num, year) to comps
-    const _comps: string[] = DETAILS[year].order;
+    const comps: string[] = DETAILS[year]?.order || [];
 
-    if (num > _comps.length) {
+    if (num > comps.length) {
       throw new Error("Illegal argument: num");
     }
 
-    if (num < 0) num = _comps.length;
+    if (num < 0) num = comps.length;
 
-    this.comps = _comps.slice(0, num);
+    this.comps = comps.slice(0, num);
   }
 
   async process() {

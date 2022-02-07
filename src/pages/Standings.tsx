@@ -17,7 +17,7 @@ import { DETAILS } from "../services/compIds";
 // Shows the final bid point standings
 // - year: year to look at
 export default function Standings({ year }: { year: string }) {
-  const [cv, setCv] = useState({} as CircuitView);
+  const [cv, setCv] = useState(new CircuitView(0, ""));
   const [marks, setMarks] = useState<Array<{ value: number; label?: string }>>([]);
 
   const [step, setStep] = useState(0);
@@ -48,7 +48,7 @@ export default function Standings({ year }: { year: string }) {
     setStep(newValue as number);
   };
 
-  const fullStandings = cv.getFullStandings();
+  const fullStandings = cv ? cv.getFullStandings() : {};
   const rows = reduce(
     fullStandings,
     (acc, groups, threshold) => {
@@ -92,7 +92,11 @@ export default function Standings({ year }: { year: string }) {
         </Grid>
         <Grid item xs={12}>
           <Typography>
-            <b>{size(get(cv, "comps"))} comps</b>: {join(get(cv, "comps"), ", ")}
+            <b>{size(get(cv, "comps"))} comps</b>:{" "}
+            {join(
+              map(cv?.comps, (c) => DETAILS[year].names[c]),
+              ", "
+            )}
           </Typography>
         </Grid>
       </Grid>

@@ -16,13 +16,12 @@ import {
 import { DETAILS } from "../services/compIds";
 import { map, values } from "lodash";
 import { handleGComp } from "../lib/competition";
-import { ScoresDict } from "../types";
+import { CompDetail } from "../types";
 
 // Show individual competition results. Has tabs for each competition in the season.
 export default function Results({ year }: { year: string }) {
   const [compIndex, setCompIndex] = useState(0);
-  const [raw, setRaw] = useState({} as ScoresDict);
-  const [normal, setNormal] = useState({} as ScoresDict);
+  const [compDetail, setCompDetail] = useState({} as CompDetail);
   const [isRaw, setIsRaw] = useState(true);
 
   const yearDetails = DETAILS[year];
@@ -41,15 +40,13 @@ export default function Results({ year }: { year: string }) {
 
   useEffect(() => {
     const fetchStuff = async () => {
-      const detail = await handleGComp(year, comp);
-      setRaw(detail.raw);
-      setNormal(detail.normal);
+      setCompDetail(await handleGComp(year, comp));
     };
 
     fetchStuff();
   }, [comp, year]);
 
-  const current = isRaw ? raw : normal;
+  const current = isRaw ? compDetail.raw : compDetail.normal;
 
   return (
     <div>
@@ -89,21 +86,30 @@ export default function Results({ year }: { year: string }) {
               {map(values(current)[0], ({}, i) => (
                 <TableCell>Judge {i + 1}</TableCell>
               ))}
+              <TableCell>Average</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {map(current, (scores, team) => (
               <TableRow key={team}>
-                <TableCell>
-                  <Typography>{team}</Typography>
-                </TableCell>
+                <TableCell>{team}</TableCell>
                 {map(scores, (score, i) => (
-                  <TableCell key={i}>
-                    <Typography>{score}</Typography>
-                  </TableCell>
+                  <TableCell key={i}>{score}</TableCell>
                 ))}
+                <TableCell variant="head">
+                  {isRaw ? compDetail.rawAverages[team] : compDetail.normalAverages[team]}
+                </TableCell>
               </TableRow>
             ))}
+            <TableRow>
+              <TableCell variant="head">Judge Average</TableCell>
+              {map(compDetail.judgeAvgs, (avg, i) => (
+                <TableCell variant="head" key={i}>
+                  {avg}
+                </TableCell>
+              ))}
+              <TableCell />
+            </TableRow>
           </TableBody>
         </Table>
       </TableContainer>
