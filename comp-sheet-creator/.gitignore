@@ -1,0 +1,11 @@
+credentials.json
+
+# venv
+env
+winenv
+
+# python
+__pycache__
+
+# pickle
+*.pickle

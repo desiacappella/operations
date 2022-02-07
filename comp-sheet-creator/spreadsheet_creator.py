@@ -1,7 +1,4 @@
-import json
-import random
 import sys
-import os.path
 from googleapiclient.discovery import build
 from typing import List
 
@@ -275,7 +272,7 @@ def calculator_sheet(judges: List[str], teams: List[str]):
                     HA: "CENTER"
                 }
             }
-                if team_idx is 0 else {
+                if team_idx == 0 else {
                 FORM: {HA: "CENTER"}
             })
             for (judge_idx, judge) in enumerate(judges)
@@ -765,7 +762,7 @@ def judge_sheet(judges, teams, judge_idx):
 
 
 def create_spreadsheet(sheet_service, name: str, judges: List[str], teams: List[str]):
-    if len(teams) is 0 or len(judges) is 0:
+    if len(teams) == 0 or len(judges) == 0:
         raise "Need more than 0 teams and judges"
 
     properties = {"title": name}

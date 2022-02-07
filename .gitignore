@@ -1,27 +1,5 @@
-# Custom
-credentials.json
+# git secret
 .gitsecret/keys/random_seed
-
-# venv
-env
-winenv
-
-# python
-__pycache__
-
-# pickle
-*.pickle
-
-# JS
-/node_modules
-/.pnp
-.pnp.js
-
-# testing
-/coverage
-
-# production
-/build
 
 # misc
 .DS_Store
@@ -29,9 +7,3 @@ __pycache__
 .env.development.local
 .env.test.local
 .env.production.local
-
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-.eslintcache
