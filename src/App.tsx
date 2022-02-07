@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Button, MenuItem, TextField, Typography } from "@material-ui/core";
+import { Button, ButtonGroup, MenuItem, TextField, Typography } from "@material-ui/core";
 import "./App.css";
 import { Link, BrowserRouter, Route, Switch } from "react-router-dom";
 import log from "loglevel";
@@ -45,8 +45,13 @@ export default function App() {
     getGapi().auth2.getAuthInstance().signIn();
   };
 
-  const handleSignOut = () => {
+  const handleClear = () => {
     localStorage.clear();
+    location.reload();
+  };
+
+  const handleSignOut = () => {
+    handleClear();
     getGapi().auth2.getAuthInstance().signOut();
   };
 
@@ -82,10 +87,12 @@ export default function App() {
                   <Typography>Team Reports</Typography>
                 </Link>
               </Grid>
+              <Grid item></Grid>
               <Grid item>
-                <Button onClick={handleSignOut} variant="outlined">
-                  Sign Out!
-                </Button>
+                <ButtonGroup variant="outlined">
+                  <Button onClick={handleClear}>Clear Data</Button>
+                  <Button onClick={handleSignOut}>Sign Out!</Button>
+                </ButtonGroup>
               </Grid>
             </Grid>
             <Grid container justify="center">
