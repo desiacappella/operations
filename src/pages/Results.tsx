@@ -10,38 +10,61 @@ import {
   TableHead,
   TableRow,
   Link,
+  Switch,
+  Grid,
 } from "@material-ui/core";
 import { DETAILS } from "../services/compIds";
-import { map, get, values } from "lodash";
-import { GSheetsScoreManager } from "../services/scoreManager";
-
-const sm = new GSheetsScoreManager();
+import { map, values } from "lodash";
+import { handleGComp } from "../lib/competition";
+import { ScoresDict } from "../types";
 
 // Show individual competition results. Has tabs for each competition in the season.
 export default function Results({ year }: { year: string }) {
   const [compIndex, setCompIndex] = useState(0);
-  const [scores, setScores] = useState({} as any);
+  const [raw, setRaw] = useState({} as ScoresDict);
+  const [normal, setNormal] = useState({} as ScoresDict);
+  const [isRaw, setIsRaw] = useState(true);
 
   const yearDetails = DETAILS[year];
   const comp = yearDetails.order[compIndex];
   const sheetId = yearDetails.sheetIds[comp];
 
   // eslint-disable-next-line
-  const handleChange = async ({}, newValue: number) => {
+  const handleChange = ({}, newValue: number) => {
     setCompIndex(newValue);
+  };
+
+  // eslint-disable-next-line
+  const handleSwitch = ({}, checked: boolean) => {
+    setIsRaw(checked);
   };
 
   useEffect(() => {
     const fetchStuff = async () => {
-      setScores(get(await sm.get_raw_scores(year, comp), "[0]"));
+      const detail = await handleGComp(year, comp);
+      setRaw(detail.raw);
+      setNormal(detail.normal);
     };
 
     fetchStuff();
   }, [comp, year]);
 
+  const current = isRaw ? raw : normal;
+
   return (
     <div>
       <Typography variant="h4">Raw Results from Competitions</Typography>
+      <Grid component="label" container justify="center" alignItems="center" spacing={1}>
+        <Grid item>
+          <Typography>Normal</Typography>
+        </Grid>
+        <Grid item>
+          <Switch checked={isRaw} onChange={handleSwitch} />
+        </Grid>
+        <Grid item>
+          <Typography>Raw</Typography>
+        </Grid>
+      </Grid>
       <Tabs value={compIndex} onChange={handleChange}>
         {map(yearDetails.order, (c) => (
           <Tab key={c} label={yearDetails.names[c]} />
@@ -63,13 +86,13 @@ export default function Results({ year }: { year: string }) {
           <TableHead>
             <TableRow>
               <TableCell>Team</TableCell>
-              {map(values(scores)[0], ({}, i) => (
+              {map(values(current)[0], ({}, i) => (
                 <TableCell>Judge {i + 1}</TableCell>
               ))}
             </TableRow>
           </TableHead>
           <TableBody>
-            {map(scores, (scores, team) => (
+            {map(current, (scores, team) => (
               <TableRow key={team}>
                 <TableCell>
                   <Typography>{team}</Typography>

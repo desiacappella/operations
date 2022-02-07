@@ -1,7 +1,17 @@
 import React, { useState, useEffect } from "react";
-import { Grid, Slider, Typography } from "@material-ui/core";
-import { CircuitView, getFullStandings } from "../services/circuitView";
-import { map, join, sortBy, get, size, last } from "lodash";
+import {
+  Grid,
+  Slider,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Typography,
+} from "@material-ui/core";
+import { CircuitView } from "../lib/circuitView";
+import { map, join, sortBy, get, size, last, reduce, concat } from "lodash";
 import { DETAILS } from "../services/compIds";
 
 // Shows the final bid point standings
@@ -38,6 +48,32 @@ export default function Standings({ year }: { year: string }) {
     setStep(newValue as number);
   };
 
+  const fullStandings = cv.getFullStandings();
+  const rows = reduce(
+    fullStandings,
+    (acc, groups, threshold) => {
+      let first = true;
+      // For each threshold, add all the teams
+      const thresholdRows = map(groups, (ranks, group) => {
+        const row = (
+          <TableRow key={group}>
+            {first && <TableCell rowSpan={size(groups)}>{threshold}</TableCell>}
+            <TableCell>{group}</TableCell>
+            <TableCell>{ranks.amed}</TableCell>
+            <TableCell>{ranks.amean}</TableCell>
+            <TableCell>{ranks.rmed}</TableCell>
+            <TableCell>{ranks.rmean}</TableCell>
+          </TableRow>
+        );
+        first = false;
+        return row;
+      });
+
+      return concat(acc, ...thresholdRows);
+    },
+    [] as JSX.Element[]
+  );
+
   return (
     <div>
       <Slider
@@ -60,56 +96,21 @@ export default function Standings({ year }: { year: string }) {
           </Typography>
         </Grid>
       </Grid>
-      <Grid container>
-        <Grid item xs={1}>
-          <Typography>Threshold</Typography>
-        </Grid>
-        <Grid container item xs={11}>
-          <Grid item xs>
-            <Typography>Team</Typography>
-          </Grid>
-          <Grid item xs>
-            <Typography>Abs Median</Typography>
-          </Grid>
-          <Grid item xs>
-            <Typography>Abs Mean</Typography>
-          </Grid>
-          <Grid item xs>
-            <Typography>Rel Median</Typography>
-          </Grid>
-          <Grid item xs>
-            <Typography>Rel Mean</Typography>
-          </Grid>
-        </Grid>
-      </Grid>
-      {map(getFullStandings(cv), (groups, t) => (
-        <Grid container alignItems="center" key={t} style={{ border: "1px solid black" }}>
-          <Grid item xs={1}>
-            <Typography>{t}</Typography>
-          </Grid>
-          <Grid item xs={11}>
-            {map(groups, (ranks, group) => (
-              <Grid container item xs={12} key={group}>
-                <Grid item xs>
-                  <Typography>{group}</Typography>
-                </Grid>
-                <Grid item xs>
-                  <Typography>{ranks.amed}</Typography>
-                </Grid>
-                <Grid item xs>
-                  <Typography>{ranks.amean}</Typography>
-                </Grid>
-                <Grid item xs>
-                  <Typography>{ranks.rmed}</Typography>
-                </Grid>
-                <Grid item xs>
-                  <Typography>{ranks.rmean}</Typography>
-                </Grid>
-              </Grid>
-            ))}
-          </Grid>
-        </Grid>
-      ))}
+      <TableContainer>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell>Threshold</TableCell>
+              <TableCell>Team</TableCell>
+              <TableCell>Abs Median</TableCell>
+              <TableCell>Abs Mean</TableCell>
+              <TableCell>Rel Median</TableCell>
+              <TableCell>Rel Mean</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>{rows}</TableBody>
+        </Table>
+      </TableContainer>
     </div>
   );
 }

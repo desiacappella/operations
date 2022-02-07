@@ -1,15 +1,11 @@
-import { median, mean, min, max } from "mathjs";
+import { median, mean, max } from "mathjs";
 import {
   reduce,
   forEach,
   concat,
-  toPairs,
-  reverse,
   sortBy,
-  values,
   keys,
   map,
-  range,
   mapValues,
   filter,
   get,
@@ -17,12 +13,13 @@ import {
   has,
   set,
 } from "lodash";
-import { DETAILS } from "./compIds";
-import { GSheetsScoreManager } from "./scoreManager";
-import { ScoresDict, Group, Stat, Rank } from "../types";
+import { DETAILS } from "../services/compIds";
+import { ScoresDict, Group, Stat, Rank, CompDetail, Year } from "../types";
 import log from "loglevel";
-import { CompDetail, handleComp } from "./compDetails";
+import { handleGComp } from "./competition";
+import { get_ranks } from "./calculator";
 
+// Represents the view across multiple competitions, i.e. a season or part of a season.
 export class CircuitView {
   year: Year;
   comps: string[];
@@ -73,7 +70,7 @@ export class CircuitView {
   );*/
 
     // build normals
-    const [raw, normal] = build_totals(this.compDetails);
+    const [raw, normal] = CircuitView.build_totals(this.compDetails);
     this.groups = keys(raw);
 
     // evaluate numbers
@@ -125,6 +122,30 @@ export class CircuitView {
     // }
   }
 
+  /*
+    Builds up all of the raw and normalized scores across the given competitions for all groups.
+    :param all_scores: all competition scores
+    :return: tuple of [raw scores dict, normalized scores dict]
+    */
+  private static build_totals(allScores?: Record<string, CompDetail>): [ScoresDict, ScoresDict] {
+    const allRaw: ScoresDict = {};
+    const allNormal: ScoresDict = {};
+
+    forEach(allScores, (val) => {
+      const raw = val.raw;
+      const normal = val.normal;
+
+      // TODO nicer reduce function?
+      forEach(raw, (scores, group) => {
+        allRaw[group] = group in allRaw ? concat(allRaw[group], scores) : scores;
+        allNormal[group] =
+          group in allNormal ? concat(allNormal[group], normal[group]) : normal[group];
+      });
+    });
+
+    return [allRaw, allNormal];
+  }
+
   getGroupStats(group: Group) {
     return {
       amed: this.amed[group] || 0,
@@ -143,32 +164,61 @@ export class CircuitView {
       total: this.groups.length,
     };
   }
-}
 
-export type Year = string;
+  getStandings() {
+    const buckets: Record<number, string[]> = {};
 
-/*
-    Builds up all of the raw and normalized scores across the given competitions for all groups.
-    :param all_scores: all competition scores
-    :return: tuple of [raw scores dict, normalized scores dict]
-    */
-function build_totals(allScores?: Record<string, CompDetail>): [ScoresDict, ScoresDict] {
-  const allRaw: ScoresDict = {};
-  const allNormal: ScoresDict = {};
-
-  forEach(allScores, (val) => {
-    const raw = val.raw;
-    const normal = val.normal;
-
-    // TODO nicer reduce function?
-    forEach(raw, (scores, group) => {
-      allRaw[group] = group in allRaw ? concat(allRaw[group], scores) : scores;
-      allNormal[group] =
-        group in allNormal ? concat(allNormal[group], normal[group]) : normal[group];
+    // Bucketize all groups
+    forEach(this.groups, (group) => {
+      const bucket = max([
+        get(this.amedRank, `[${group}]`, size(this.groups)),
+        get(this.ameanRank, `[${group}]`, size(this.groups)),
+        get(this.rmedRank, `[${group}]`, size(this.groups)),
+        get(this.rmeanRank, `[${group}]`, size(this.groups)),
+      ]);
+      if (bucket) {
+        buckets[bucket] = bucket in buckets ? concat(buckets[bucket], group) : [group];
+      }
     });
-  });
 
-  return [allRaw, allNormal];
+    // Sort each bucket by group name
+    return mapValues(buckets, (vals) => sortBy(vals));
+  }
+
+  /**
+   * Returns an ordered dictionary of all of the thresholded groups.
+   */
+  getFullStandings(): Record<number, Record<string, Record<string, number>>> {
+    const buckets = this.getStandings();
+
+    return mapValues(buckets, (groups) =>
+      reduce(
+        groups,
+        (acc, group) => {
+          acc[group] = {
+            amed: this.amedRank[group],
+            amean: this.ameanRank[group],
+            rmed: this.rmedRank[group],
+            rmean: this.rmeanRank[group],
+          };
+          return acc;
+        },
+        {} as Record<string, Record<string, number>>
+      )
+    );
+  }
+
+  /* Select groups given a threshold. */
+  selectGroups(threshold: number) {
+    return filter(
+      this.groups,
+      (t) =>
+        get(this.amedRank, `[${t}]`, size(this.groups)) <= threshold &&
+        get(this.ameanRank, `[${t}]`, size(this.groups)) <= threshold &&
+        get(this.rmedRank, `[${t}]`, size(this.groups)) <= threshold &&
+        get(this.rmeanRank, `[${t}]`, size(this.groups)) <= threshold
+    );
+  }
 }
 
 /*
@@ -187,84 +237,3 @@ function get_stats(scores?: ScoresDict) {
 
   return [_med, _mean];
 }
-
-// Map of group -> value
-function get_ranks(statsMap: Record<Group, Stat>): Record<Group, Rank> {
-  const pairs = toPairs(statsMap);
-  const sortedByValue = reverse(sortBy(values(pairs), [(p) => p[1]]));
-
-  // start with 1
-  return reduce(
-    sortedByValue,
-    (acc, cur, idx) => {
-      acc[cur[0]] = idx + 1;
-      return acc;
-    },
-    {} as Record<Group, Rank>
-  );
-}
-
-export const handleGComp = async (year: Year, comp: string): Promise<CompDetail> => {
-  const scoreManager = new GSheetsScoreManager();
-
-  const [raw, numJudges] = await scoreManager.get_raw_scores(year, comp);
-
-  return handleComp(raw, numJudges);
-}
-
-export const getStandings = (cv: CircuitView) => {
-  const buckets: Record<number, string[]> = {};
-
-  // Bucketize all groups
-  forEach(get(cv, "groups"), (group) => {
-    const bucket = max([
-      get(cv.amedRank, `[${group}]`, size(cv.groups)),
-      get(cv.ameanRank, `[${group}]`, size(cv.groups)),
-      get(cv.rmedRank, `[${group}]`, size(cv.groups)),
-      get(cv.rmeanRank, `[${group}]`, size(cv.groups)),
-    ]);
-    if (bucket) {
-      buckets[bucket] = bucket in buckets ? concat(buckets[bucket], group) : [group];
-    }
-  });
-
-  // Sort each bucket by group name
-  return mapValues(buckets, (vals) => sortBy(vals));
-};
-
-/*
-        Returns an ordered dictionary of all of the thresholded groups.
-        */
-export const getFullStandings = (
-  cv: CircuitView
-): Record<number, Record<string, Record<string, number>>> => {
-  const buckets = getStandings(cv);
-
-  return mapValues(buckets, (groups) =>
-    reduce(
-      groups,
-      (acc, group) => {
-        acc[group] = {
-          amed: cv.amedRank[group],
-          amean: cv.ameanRank[group],
-          rmed: cv.rmedRank[group],
-          rmean: cv.rmeanRank[group],
-        };
-        return acc;
-      },
-      {} as Record<string, Record<string, number>>
-    )
-  );
-};
-
-/* Select groups given a threshold. */
-export const selectGroups = (cv: CircuitView, threshold: number) => {
-  filter(
-    cv.groups,
-    (t) =>
-      get(cv.amedRank, `[${t}]`, size(cv.groups)) <= threshold &&
-      get(cv.ameanRank, `[${t}]`, size(cv.groups)) <= threshold &&
-      get(cv.rmedRank, `[${t}]`, size(cv.groups)) <= threshold &&
-      get(cv.rmeanRank, `[${t}]`, size(cv.groups)) <= threshold
-  );
-};

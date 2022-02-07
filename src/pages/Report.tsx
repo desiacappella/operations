@@ -15,7 +15,7 @@ import {
 import { find, last, map, range, round, size } from "lodash";
 import React, { useEffect, useState } from "react";
 import logo from "../images/logo.png";
-import { CircuitView } from "../services/circuitView";
+import { CircuitView } from "../lib/circuitView";
 import { DETAILS } from "../services/compIds";
 
 function Report({ year, group, full }: { year: string; group: string; full: CircuitView }) {

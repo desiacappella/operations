@@ -53,10 +53,12 @@ export const DETAILS: Record<string, SingleYear> = {
       jeena: "Jeena",
       sangeet: "Sangeet Saagar",
       sapna: "Steel City Sapna",
-      awaazein: "Awaazein"
+      awaazein: "Awaazein",
     },
     sheetIds: {
-      sangeet: "1HV0ytC_S8O1TrkPBjhH4Nnk43o_S8u-lz53krjFoDi4"
-    }
-  }
+      sangeet: "1HV0ytC_S8O1TrkPBjhH4Nnk43o_S8u-lz53krjFoDi4",
+      sapna: "1x-60JJXicIrXA_m7x1652SSl7gJ_aKqDBNA22IcwF8w",
+      jeena: "1Ul53wzbCMpO_nmZ-l4HDZUFHHTKNMvsHCSq1XH2mekU",
+    },
+  },
 };

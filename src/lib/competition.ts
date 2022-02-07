@@ -1,6 +1,7 @@
-import { map, mapValues, values, range } from "lodash";
-import { max, median, mean, min } from "mathjs";
-import { ScoresDict } from "../types";
+import { mean, max, min, median } from "mathjs";
+import { values, map, range, mapValues } from "lodash";
+import { CompDetail, ScoresDict, Year } from "../types";
+import { GSheetsScoreManager } from "../services/scoreManager";
 
 /**
  * Handles a single competition.
@@ -38,13 +39,11 @@ export const handleComp = (raw: ScoresDict, numJudges: number): CompDetail => {
   };
 };
 
-export interface CompDetail {
-  raw: ScoresDict;
-  normal: ScoresDict;
-  rawAverages: Record<string, number>;
-  normalAverages: Record<string, number>;
-  normalMedians: Record<string, number>;
-  max: number;
-  min: number;
-  judgeAvgs: number[];
-}
+// Retrieve competition details for a year and competition name
+export const handleGComp = async (year: Year, comp: string): Promise<CompDetail> => {
+  const scoreManager = new GSheetsScoreManager();
+
+  const [raw, numJudges] = await scoreManager.get_raw_scores(year, comp);
+
+  return handleComp(raw, numJudges);
+};

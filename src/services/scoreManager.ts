@@ -8,24 +8,31 @@ const KEY_PREFIX = "compDetails";
 
 export class GSheetsScoreManager /*implements ScoreManager*/ {
   parseV1(cells: string[][]): [ScoresDict, number] {
-      // Ignore first two header rows
-      const teamCount = cells.length - 2;
-      const judgeCount =
-        findIndex(cells[0], (v) => v === "Converted Scores") -
-        // This can be "Raw Scores" (in the normal case) or "Scores after Time Deduction"
-        findLastIndex(cells[0], (v) => v.indexOf("Scores") >= 0 && v !== "Converted Scores");
+    // Ignore first two header rows
+    const teamCount = cells.length - 2;
+    const convertedScoresStart = findIndex(cells[0], (v) => v.startsWith("Converted Scores"));
+    // This can be "Raw Scores" (in the normal case) or "Scores after Time Deduction"
+    const rawScoresStart = findLastIndex(
+      cells[0],
+      (v) => v.indexOf("Scores") >= 0 && v.indexOf("Converted Scores") < 0
+    );
+    const judgeCount = convertedScoresStart - rawScoresStart;
 
-      const raw = reduce(
-        // Only look at the team rows
-        cells.slice(2, 2 + teamCount),
-        (acc, row) =>
-          // Per row, extract the scores in the columns to the left of the Converted Scores. -3 is for the
-          // "Results" columns (avg, sanity, placing)
-          set(acc, row[0], row.slice(row.length - 3 - 2 * judgeCount, row.length - 3 - judgeCount)),
-        {}
-      );
+    // How much stuff is at the end of each row?
+    // - Some sheets have 3 columns: avg, sanity, placing
+    // - Some sheets have 5 columns:
 
-      return [raw, judgeCount];
+    const raw = reduce(
+      // Only look at the team rows
+      cells.slice(2, 2 + teamCount),
+      (acc, row) =>
+        // Per row, extract the scores in the columns to the left of the Converted Scores. -3 is for the
+        // "Results" columns (avg, sanity, placing)
+        set(acc, row[0], row.slice(rawScoresStart, convertedScoresStart)),
+      {}
+    );
+
+    return [raw, judgeCount];
   }
 
   // This stores raw scores from each competition in a dictionary with the key being the year
