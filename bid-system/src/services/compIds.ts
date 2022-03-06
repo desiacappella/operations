@@ -59,6 +59,7 @@ export const DETAILS: Record<string, SingleYear> = {
       sangeet: "1HV0ytC_S8O1TrkPBjhH4Nnk43o_S8u-lz53krjFoDi4",
       sapna: "1x-60JJXicIrXA_m7x1652SSl7gJ_aKqDBNA22IcwF8w",
       jeena: "1Ul53wzbCMpO_nmZ-l4HDZUFHHTKNMvsHCSq1XH2mekU",
+      awaazein: "1zwqRrbtME1raKA4RQouh03NZZFw82VEiyTS38vEhlo8",
     },
   },
 };
